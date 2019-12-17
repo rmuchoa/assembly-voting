@@ -8,7 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+
+import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Service
 public class VoteSessionService {
@@ -25,24 +29,56 @@ public class VoteSessionService {
     }
 
     /**
-     * Open a vote session for a specific agenda created.
+     * Open a vote session for related agenda by id defining a deadline time ranged in minutes.
      * Only accept to open vote session for meeting agendas that have not been related to any vote session.
-     * The related agenda is loaded by id and the vote period is defined between now and a deadline in minutes later.
      *
      * @param agendaId
      * @param deadlineMinutes
      * @return
      */
     public VoteSession openFor(final String agendaId, final Long deadlineMinutes) {
-        if (!repository.findByAgendaId(agendaId).isEmpty()) {
+        if (hasVoteSessionAlredyOpenedFor(agendaId)) {
             throw new ValidationException("vote.session.already.opened", "agendaId", agendaId);
         }
 
-        MeetingAgenda agenda = meetingAgendaService.loadAgenda(agendaId);
-        return openFor(agenda, deadlineMinutes);
+        MeetingAgenda agenda = loadSessionAgenda(agendaId);
+        return openSessionFor(agenda, deadlineMinutes);
     }
 
-    private VoteSession openFor(final MeetingAgenda agenda, Long deadlineMinutes) {
+    /**
+     * Load session a specific agenda that was previously created by id.
+     *
+     * @param agendaId
+     * @return
+     */
+    protected MeetingAgenda loadSessionAgenda(final String agendaId) {
+        Optional<MeetingAgenda> agenda = meetingAgendaService.loadAgenda(agendaId);
+        if (!agenda.isPresent()) {
+            throw new NotFoundReferenceException("MeetingAgenda", "meeting.agenda.not.found");
+        }
+
+        return agenda.get();
+    }
+
+    /**
+     * Check if given agenda already is related to some vote session.
+     *
+     * @param agendaId
+     * @return
+     */
+    private Boolean hasVoteSessionAlredyOpenedFor(final String agendaId) {
+        List<VoteSession> foundSessions = repository.findByAgendaId(agendaId);
+        return !isEmpty(foundSessions);
+    }
+
+    /**
+     * Open session for related agenda defining time period for voting by deadline in minutes.
+     *
+     * @param agenda
+     * @param deadlineMinutes
+     * @return
+     */
+    protected VoteSession openSessionFor(final MeetingAgenda agenda, Long deadlineMinutes) {
         String id = UUID.randomUUID().toString();
         LocalDateTime openingTime = LocalDateTime.now();
         LocalDateTime closingTime = LocalDateTime.now().plusMinutes(deadlineMinutes);

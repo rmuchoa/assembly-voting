@@ -34,18 +34,12 @@ public class MeetingAgendaService {
     /**
      * Load some agenda based on a specific agenda id.
      * This agenda can be related on a voting session.
-     * Throws a NotFoundReferenceException.class when agenda can not be found.
      *
      * @param id
      * @return
      */
-    public MeetingAgenda loadAgenda(final String id) {
-        Optional<MeetingAgenda> agenda = repository.findById(id);
-        if (agenda.isPresent()) {
-            return agenda.get();
-        }
-
-        throw new NotFoundReferenceException("MeetingAgenda", "meeting.agenda.not.found");
+    public Optional<MeetingAgenda> loadAgenda(final String id) {
+        return repository.findById(id);
     }
 
 }
