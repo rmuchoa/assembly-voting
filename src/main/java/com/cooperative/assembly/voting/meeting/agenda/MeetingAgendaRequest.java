@@ -11,7 +11,7 @@ public class MeetingAgendaRequest {
 
     @NotBlank(message = "meeting.agenda.title.not.empty")
     @NotNull(message = "meeting.agenda.title.invalid")
-    @Size(max = 100, message = "meeting.agenda.title.size.invalid")
+    @Size(max = 100, message = "meeting.agenda.title.invalid.size")
     private String title;
 
 }

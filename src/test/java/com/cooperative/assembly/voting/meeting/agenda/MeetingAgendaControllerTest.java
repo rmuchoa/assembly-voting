@@ -22,7 +22,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -100,8 +99,8 @@ public class MeetingAgendaControllerTest {
     }
 
     @Test
-    public void shouldReturnResponseErrorWhenTryToPerformCreationWithEmptyTitleRequestContentProperty() throws Exception {
-        final ResultActions result = performEmptyPropertyCreation();
+    public void shouldReturnResponseErrorWhenTryingToPerformCreationWithEmptyTitleRequestContentProperty() throws Exception {
+        final ResultActions result = tryPerformEmptyPropertyCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
@@ -109,8 +108,8 @@ public class MeetingAgendaControllerTest {
     }
 
     @Test
-    public void shouldReturnResponseErrorWhenTryToPerformCreationWithNullTitleRequestContentProperty() throws Exception {
-        final ResultActions result = performNullPropertyCreation();
+    public void shouldReturnResponseErrorWhenTryingToPerformCreationWithNullTitleRequestContentProperty() throws Exception {
+        final ResultActions result = tryPerformNullPropertyCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
@@ -118,8 +117,8 @@ public class MeetingAgendaControllerTest {
     }
 
     @Test
-    public void shouldReturnResponseErrorWhenTryToPerformCreationWithExtraSizedTitleRequestContentProperty() throws Exception {
-        final ResultActions result = performExtraSizedPropertyCreation();
+    public void shouldReturnResponseErrorWhenTryingToPerformCreationWithExtraSizedTitleRequestContentProperty() throws Exception {
+        final ResultActions result = tryPerformExtraSizedPropertyCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
@@ -127,8 +126,8 @@ public class MeetingAgendaControllerTest {
     }
 
     @Test
-    public void shouldReturnNotEmptyResponseErrorWhenTryToPerformCreationWithEmptyTitleRequestContentProperty() throws Exception {
-        final ResultActions result = performEmptyPropertyCreation();
+    public void shouldReturnNotEmptyResponseErrorWhenTryingToPerformCreationWithEmptyTitleRequestContentProperty() throws Exception {
+        final ResultActions result = tryPerformEmptyPropertyCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
@@ -139,12 +138,12 @@ public class MeetingAgendaControllerTest {
                 .andExpect(jsonPath("$.errors[0].detail").value("meeting.agenda.title.not.empty"))
                 .andExpect(jsonPath("$.errors[0].source").exists())
                 .andExpect(jsonPath("$.errors[0].source.pointer").value(titleField))
-                .andExpect(jsonPath("$.errors[0].source.parameter").value(EMPTY));
+                .andExpect(jsonPath("$.errors[0].source.parameter").value(""));
     }
 
     @Test
-    public void shouldReturnInvalidAndNotEmptyResponseErrorWhenTryToPerformCreationWithNullTitleRequestContentProperty() throws Exception {
-        final ResultActions result = performNullPropertyCreation();
+    public void shouldReturnInvalidAndNotEmptyResponseErrorWhenTryingToPerformCreationWithNullTitleRequestContentProperty() throws Exception {
+        final ResultActions result = tryPerformNullPropertyCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
@@ -159,8 +158,8 @@ public class MeetingAgendaControllerTest {
     }
 
     @Test
-    public void shouldReturnNotEmptyResponseErrorWhenTryToPerformCreationWithExtraSizedTitleRequestContentProperty() throws Exception {
-        final ResultActions result = performExtraSizedPropertyCreation();
+    public void shouldReturnInvalidSizeResponseErrorWhenTryingToPerformCreationWithExtraSizedTitleRequestContentProperty() throws Exception {
+        final ResultActions result = tryPerformExtraSizedPropertyCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
@@ -168,7 +167,7 @@ public class MeetingAgendaControllerTest {
                 .andExpect(jsonPath("$.errors[0]").exists())
                 .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
                 .andExpect(jsonPath("$.errors[0].title").value(incorrectRequestFormat))
-                .andExpect(jsonPath("$.errors[0].detail").value("meeting.agenda.title.size.invalid"))
+                .andExpect(jsonPath("$.errors[0].detail").value("meeting.agenda.title.invalid.size"))
                 .andExpect(jsonPath("$.errors[0].source").exists())
                 .andExpect(jsonPath("$.errors[0].source.pointer").value(titleField))
                 .andExpect(jsonPath("$.errors[0].source.parameter").value("012345679|0123456789|0123456789|0123456789|0123456789|0123456789|0123456789|0123456789|0123456789|0123456789"));
@@ -184,21 +183,21 @@ public class MeetingAgendaControllerTest {
                 .content(bodyContent));
     }
 
-    private ResultActions performEmptyPropertyCreation() throws Exception {
+    private ResultActions tryPerformEmptyPropertyCreation() throws Exception {
         final String bodyContent = Resources.toString(requestEmptyTitleMeetingAgendaCreation.getURL(), UTF_8);
         return mockMvc.perform(post("/meeting/agenda/create")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
-    private ResultActions performNullPropertyCreation() throws Exception {
+    private ResultActions tryPerformNullPropertyCreation() throws Exception {
         final String bodyContent = Resources.toString(requestNullTitleMeetingAgendaCreation.getURL(), UTF_8);
         return mockMvc.perform(post("/meeting/agenda/create")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
-    private ResultActions performExtraSizedPropertyCreation() throws Exception {
+    private ResultActions tryPerformExtraSizedPropertyCreation() throws Exception {
         final String bodyContent = Resources.toString(requestExtraSizedTitleMeetingAgendaCreation.getURL(), UTF_8);
         return mockMvc.perform(post("/meeting/agenda/create")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)

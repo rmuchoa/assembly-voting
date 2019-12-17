@@ -11,8 +11,8 @@ public class MeetingAgendaResponse {
     private String id;
     private String title;
 
-    public static ResponseJson<MeetingAgendaResponse, Void> buildResponse(MeetingAgenda meetingAgenda) {
-        MeetingAgendaResponse data = new MeetingAgendaResponse(meetingAgenda.getId(), meetingAgenda.getTitle());
+    public static ResponseJson<MeetingAgendaResponse, Void> buildResponse(MeetingAgenda agenda) {
+        MeetingAgendaResponse data = new MeetingAgendaResponse(agenda.getId(), agenda.getTitle());
         return new ResponseJson<>(data);
     }
 

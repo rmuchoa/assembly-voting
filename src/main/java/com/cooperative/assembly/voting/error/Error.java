@@ -19,21 +19,21 @@ public class Error {
 
     public Error(String code, String title, String detail) {
         this.code = code;
-        this.detail = detail;
         this.title = title;
+        this.detail = detail;
     }
 
     public Error(String code, String title, String detail, String pointer) {
         this.code = code;
-        this.detail = detail;
         this.title = title;
+        this.detail = detail;
         this.source = new Source(pointer);
     }
 
     public Error(String code, String title, String detail, String pointer, Object parameter) {
         this.code = code;
-        this.detail = detail;
         this.title = title;
+        this.detail = detail;
         this.source = new Source(pointer, (parameter != null ? parameter.toString() : null));
     }
 

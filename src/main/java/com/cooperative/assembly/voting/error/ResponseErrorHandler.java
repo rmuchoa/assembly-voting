@@ -1,7 +1,9 @@
 package com.cooperative.assembly.voting.error;
 
+import com.cooperative.assembly.voting.error.exception.GenericException;
+import com.cooperative.assembly.voting.error.exception.NotFoundReferenceException;
 import com.cooperative.assembly.voting.response.ResponseJson;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,35 +16,98 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @ControllerAdvice
 @RestController
-@Log
+@Log4j2
 public class ResponseErrorHandler {
 
+    /**
+     * Returns 400 BadRequest status for handled Spring web ServletRequestBindingException.class
+     * @param ex
+     * @return
+     */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = ServletRequestBindingException.class)
-    public ResponseJson handleServletRequestException(ServletRequestBindingException srbex) {
-        return new ResponseJson(ErrorFactory.errorFromRequestBindingException(srbex));
+    public ResponseJson handleServletRequestException(ServletRequestBindingException ex) {
+        log.error(ex.getMessage(), ex);
+        return new ResponseJson(ErrorFactory.errorFromRequestBindingException(ex));
     }
 
+    /**
+     * Returns 400 BadRequest status for handled Spring web MethodArgumentTypeMismatchException.class
+     * @param ex
+     * @return
+     */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = MethodArgumentTypeMismatchException.class)
-    public ResponseJson handleMethodArgumentException(MethodArgumentTypeMismatchException matmex) {
-        return new ResponseJson(ErrorFactory.errorFromTypeMismatchException(matmex));
+    public ResponseJson handleMethodArgumentException(MethodArgumentTypeMismatchException ex) {
+        log.error(ex.getMessage(), ex);
+        return new ResponseJson(ErrorFactory.errorFromTypeMismatchException(ex));
     }
 
+    /**
+     * Returns 400 BadRequest status for handled Spring web MethodArgumentNotValidException.class
+     * @param ex
+     * @return
+     */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    public ResponseJson handleMethodArgumentNotValidException(MethodArgumentNotValidException manvexc) {
-        return new ResponseJson(ErrorFactory.errorFromValidationException(manvexc));
+    public ResponseJson handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        log.error(ex.getMessage(), ex);
+        return new ResponseJson(ErrorFactory.errorFromValidationException(ex));
     }
 
+    /**
+     * Return 400 BadRequest status for handled Spring validation BindException.class
+     * @param ex
+     * @return
+     */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(value = BindException.class)
     public ResponseJson handleBindException(BindException ex) {
+        log.error(ex.getMessage(), ex);
         return new ResponseJson(ErrorFactory.errorFromBindException(ex));
+    }
+
+    /**
+     * Returns 500 status for handled NotFoundReferenceException.class
+     * @param ex
+     * @return
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(value = NotFoundReferenceException.class)
+    public ResponseJson handleInternalErrorException(NotFoundReferenceException ex) {
+        log.error(ex.getMessage(), ex);
+        return new ResponseJson(ErrorFactory.errorFromGenericException(ex));
+    }
+
+    /**
+     * Will catchs all exceptions from generic without a especific handler and returns 500 InternalServerError status
+     * @param ex
+     * @return
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(value = GenericException.class)
+    public ResponseJson handleGenericException(GenericException ex) {
+        log.error(ex.getMessage(), ex);
+        return new ResponseJson(ErrorFactory.errorFromGenericException(ex));
+    }
+
+    /**
+     * Will cathes all un-handled exceptions and returns 500 InternalServerError status
+     * @param ex
+     * @return
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(value = Exception.class)
+    public ResponseJson handleException(Exception ex) {
+        log.error(ex.getMessage(), ex);
+        return new ResponseJson(ErrorFactory.errorFromException(ex));
     }
 
 }
