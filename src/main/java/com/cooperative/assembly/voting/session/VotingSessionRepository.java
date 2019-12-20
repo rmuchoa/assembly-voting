@@ -21,6 +21,6 @@ public interface VotingSessionRepository extends MongoRepository<VotingSession, 
      * @param agendaId
      * @return
      */
-    public List<VotingSession> findByAgendaId(String agendaId);
+    public Optional<VotingSession> findByAgendaId(String agendaId);
 
 }

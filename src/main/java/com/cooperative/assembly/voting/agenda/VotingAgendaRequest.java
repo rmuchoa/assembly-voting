@@ -10,7 +10,6 @@ import javax.validation.constraints.Size;
 public class VotingAgendaRequest {
 
     @NotBlank(message = "voting.agenda.title.not.empty")
-    @NotNull(message = "voting.agenda.title.invalid")
     @Size(max = 100, message = "voting.agenda.title.invalid.size")
     private String title;
 

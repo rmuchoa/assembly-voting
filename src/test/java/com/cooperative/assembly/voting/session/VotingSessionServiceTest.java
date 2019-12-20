@@ -16,8 +16,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
 import static java.util.UUID.randomUUID;
 import static java.time.LocalDateTime.now;
@@ -117,7 +115,7 @@ public class VotingSessionServiceTest {
     public void shouldThrowsNotFoundReferenceExceptionExceptionWhenCanFindAnAgendaByGivenId() {
         VotingAgenda agenda = new VotingAgenda(agendaId, "agenda-title-1");
         VotingSession foundSession = new VotingSession(sessionId, agenda, openingTime, closingTime);
-        when(repository.findByAgendaId(agendaId)).thenReturn(asList(foundSession));
+        when(repository.findByAgendaId(agendaId)).thenReturn(of(foundSession));
 
         assertThatExceptionOfType(ValidationException.class)
                 .isThrownBy(() -> service.openFor(agendaId, deadlineMinutes))
@@ -127,7 +125,7 @@ public class VotingSessionServiceTest {
     @Test
     public void shouldNeverThrowsAnyNotFoundReferenceExceptionExceptionWhenCanNotFindAnyAgendaByGivenId() {
         VotingAgenda agenda = new VotingAgenda(agendaId, "agenda-title-1");
-        when(repository.findByAgendaId(agendaId)).thenReturn(emptyList());
+        when(repository.findByAgendaId(agendaId)).thenReturn(empty());
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
 
         assertThatCode(() -> service.openFor(agendaId, deadlineMinutes))
@@ -145,12 +143,33 @@ public class VotingSessionServiceTest {
     }
 
     @Test
-    public void shouldThrowNotFoundReferenceExceptionExceptionWhenCanFindAnAgendaByGivenId() {
+    public void shouldNeverThrowExceptionWhenCanFindAnAgendaByGivenId() {
         String agendaId = randomUUID().toString();
         VotingAgenda agenda = new VotingAgenda(agendaId, "agenda-title-1");
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
 
         assertThatCode(() -> service.loadSessionAgenda(agendaId))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void shouldThrowNotFoundReferenceExceptionExceptionWhenCanNotFindAnySessionByGivenAgendaId() {
+        String agendaId = randomUUID().toString();
+        when(repository.findByAgendaId(agendaId)).thenReturn(empty());
+
+        assertThatExceptionOfType(NotFoundReferenceException.class)
+                .isThrownBy(() -> service.loadVoteSession(agendaId))
+                .withMessage("Reference not found");
+    }
+
+    @Test
+    public void shouldNeverThrowExceptionWhenCanFindAnSessionByGivenAgendaId() {
+        String agendaId = randomUUID().toString();
+        VotingAgenda agenda = new VotingAgenda(agendaId, "agenda-title-1");
+        VotingSession session = new VotingSession(sessionId, agenda, openingTime, closingTime);
+        when(repository.findByAgendaId(agendaId)).thenReturn(of(session));
+
+        assertThatCode(() -> service.loadVoteSession(agendaId))
                 .doesNotThrowAnyException();
     }
 

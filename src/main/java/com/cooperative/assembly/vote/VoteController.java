@@ -1,4 +1,4 @@
-package com.cooperative.assembly.voting.agenda;
+package com.cooperative.assembly.vote;
 
 import com.cooperative.assembly.response.ResponseJson;
 import io.swagger.annotations.Api;
@@ -12,25 +12,26 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("cooperative/assembly/voting/agenda")
-@Api(tags = "Voting Agenda")
-public class VotingAgendaController {
+@RequestMapping("cooperative/assembly/vote")
+@Api(tags = "Vote")
+public class VoteController {
 
-    private VotingAgendaService service;
+    private static final Long DEFAULT_DEADLINE_MINUTES = 1L;
+
+    private VoteService service;
 
     @Autowired
-    public VotingAgendaController(VotingAgendaService service) {
+    public VoteController(final VoteService service) {
         this.service = service;
     }
 
-    @ApiOperation(value = "Create Voting Agenda for Cooperative Assembly")
+    @ApiOperation(value = "Register Vote for Cooperative Assembly Agenda")
     @PostMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE,
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     @Transactional
-    public ResponseEntity<ResponseJson<VotingAgendaResponse, Void>> create(@Valid @RequestBody VotingAgendaRequest request) {
-        VotingAgenda votingAgenda = service.create(request.getTitle());
-        return ResponseEntity.ok().body(VotingAgendaResponse.buildResponse(votingAgenda));
+    public ResponseEntity<ResponseJson<VoteResponse, Void>> register(@Valid @RequestBody VoteRequest request) {
+        Vote vote = service.choiceVote(request.getUserId(), request.getAgendaId(), request.getChoice());
+        return ResponseEntity.ok().body(VoteResponse.buildResponse(vote));
     }
-
 }

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("voting/session")
+@RequestMapping("cooperative/assembly/voting/session")
 @Api(tags = "Voting Session")
 public class VotingSessionController {
 
@@ -26,8 +26,7 @@ public class VotingSessionController {
     }
 
     @ApiOperation(value = "Open Voting Session for Cooperative Assembly Agenda")
-    @PostMapping(value = "/open",
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE,
+    @PostMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE,
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     @Transactional

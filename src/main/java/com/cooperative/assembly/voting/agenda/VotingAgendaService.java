@@ -4,7 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.UUID;
+
+import static java.util.UUID.randomUUID;
 
 @Service
 public class VotingAgendaService {
@@ -24,7 +25,7 @@ public class VotingAgendaService {
      * @return
      */
     public VotingAgenda create(final String title) {
-        String id = UUID.randomUUID().toString();
+        String id = randomUUID().toString();
         VotingAgenda votingAgenda = new VotingAgenda(id, title);
 
         return repository.save(votingAgenda);

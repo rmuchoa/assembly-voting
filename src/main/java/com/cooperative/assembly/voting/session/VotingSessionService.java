@@ -10,21 +10,21 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.springframework.util.CollectionUtils.isEmpty;
+import static java.util.UUID.randomUUID;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 @Service
 public class VotingSessionService {
 
-    @Autowired
     private VotingSessionRepository repository;
-
-    @Autowired
     private VotingAgendaService votingAgendaService;
 
     @Autowired
-    public VotingSessionService(final VotingSessionRepository repository) {
+    public VotingSessionService(final VotingAgendaService votingAgendaService, final VotingSessionRepository repository) {
+        this.votingAgendaService = votingAgendaService;
         this.repository = repository;
     }
 
@@ -37,8 +37,9 @@ public class VotingSessionService {
      * @return
      */
     public VotingSession openFor(final String agendaId, final Long deadlineMinutes) {
-        if (hasVoteSessionAlredyOpenedFor(agendaId)) {
-            throw new ValidationException("vote.session.already.opened", "agendaId", agendaId);
+        Optional<VotingSession> session = repository.findByAgendaId(agendaId);
+        if (session.isPresent()) {
+            throw new ValidationException("voting.session.already.opened", "agendaId", agendaId);
         }
 
         VotingAgenda agenda = loadSessionAgenda(agendaId);
@@ -46,7 +47,8 @@ public class VotingSessionService {
     }
 
     /**
-     * Load session a specific agenda that was previously created by id.
+     * Load specific agenda by id that was previously created.
+     * Throw NotFoundReferenceException.class when voting agenda can not be found.
      *
      * @param agendaId
      * @return
@@ -54,21 +56,26 @@ public class VotingSessionService {
     protected VotingAgenda loadSessionAgenda(final String agendaId) {
         Optional<VotingAgenda> agenda = votingAgendaService.loadAgenda(agendaId);
         if (!agenda.isPresent()) {
-            throw new NotFoundReferenceException("VotingAgenda", "meeting.agenda.not.found");
+            throw new NotFoundReferenceException("VotingAgenda", "voting.agenda.not.found");
         }
 
         return agenda.get();
     }
 
     /**
-     * Check if given agenda already is related to some vote session.
+     * Load voting session by agenda that was previously related with.
+     * Throw NotFoundReferenceException.class when voting session can not be found.
      *
      * @param agendaId
      * @return
      */
-    private Boolean hasVoteSessionAlredyOpenedFor(final String agendaId) {
-        List<VotingSession> foundSessions = repository.findByAgendaId(agendaId);
-        return !isEmpty(foundSessions);
+    public VotingSession loadVoteSession(final String agendaId) {
+        Optional<VotingSession> session = repository.findByAgendaId(agendaId);
+        if (!session.isPresent()) {
+            throw new NotFoundReferenceException("VotingSession", "voting.session.not.found");
+        }
+
+        return session.get();
     }
 
     /**
@@ -79,7 +86,7 @@ public class VotingSessionService {
      * @return
      */
     protected VotingSession openSessionFor(final VotingAgenda agenda, Long deadlineMinutes) {
-        String id = UUID.randomUUID().toString();
+        String id = randomUUID().toString();
         LocalDateTime openingTime = LocalDateTime.now();
         LocalDateTime closingTime = LocalDateTime.now().plusMinutes(deadlineMinutes);
 

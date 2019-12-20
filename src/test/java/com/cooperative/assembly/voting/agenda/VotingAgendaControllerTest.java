@@ -71,20 +71,12 @@ public class VotingAgendaControllerTest {
     }
 
     @Test
-    public void shouldReturnResponseDataWhenPerformSuccessVotingAgendaCreation() throws Exception {
+    public void shouldReturnResponseDataAndNotReturnResponseErrorsWhenPerformSuccessVotingAgendaCreation() throws Exception {
         final ResultActions result = performSuccessCreation();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").exists());
-    }
-
-    @Test
-    public void shouldNotReturnResponseErrorsWhenPerformSuccessVotingAgendaCreation() throws Exception {
-        final ResultActions result = performSuccessCreation();
-
-        result.andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").exists())
                 .andExpect(jsonPath("$.errors").doesNotExist());
     }
 
@@ -94,6 +86,7 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").exists())
                 .andExpect(jsonPath("$.data.id").value(agendaUUID))
                 .andExpect(jsonPath("$.data.title").value(agendaTitle));
     }
@@ -104,7 +97,8 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").exists());
+                .andExpect(jsonPath("$.errors").exists())
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -113,7 +107,8 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").exists());
+                .andExpect(jsonPath("$.errors").exists())
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -122,7 +117,8 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").exists());
+                .andExpect(jsonPath("$.errors").exists())
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -131,6 +127,7 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").exists())
                 .andExpect(jsonPath("$.errors.length()").value(1))
                 .andExpect(jsonPath("$.errors[0]").exists())
                 .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
@@ -147,14 +144,15 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.length()").value(2))
-                .andExpect(jsonPath("$.errors[*]").exists())
-                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
-                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.agenda.title.not.empty", "voting.agenda.title.invalid")))
-                .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(titleField, titleField)))
-                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder(new String[] { null, null })));
+                .andExpect(jsonPath("$.errors").exists())
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0]").exists())
+                .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
+                .andExpect(jsonPath("$.errors[0].title").value(incorrectRequestFormat))
+                .andExpect(jsonPath("$.errors[0].detail").value("voting.agenda.title.not.empty"))
+                .andExpect(jsonPath("$.errors[0].source").exists())
+                .andExpect(jsonPath("$.errors[0].source.pointer").value(titleField))
+                .andExpect(jsonPath("$.errors[0].source.parameter").doesNotExist());
     }
 
     @Test
@@ -163,6 +161,7 @@ public class VotingAgendaControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").exists())
                 .andExpect(jsonPath("$.errors.length()").value(1))
                 .andExpect(jsonPath("$.errors[0]").exists())
                 .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
@@ -178,28 +177,28 @@ public class VotingAgendaControllerTest {
         when(votingAgendaService.create(agendaTitle)).thenReturn(votingAgenda);
 
         final String bodyContent = Resources.toString(requestCreateVotingAgenda.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/agenda/create")
+        return mockMvc.perform(post("/cooperative/assembly/voting/agenda")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryPerformEmptyPropertyCreation() throws Exception {
         final String bodyContent = Resources.toString(requestEmptyTitleVotingAgendaCreation.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/agenda/create")
+        return mockMvc.perform(post("/cooperative/assembly/voting/agenda")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryPerformNullPropertyCreation() throws Exception {
         final String bodyContent = Resources.toString(requestNullTitleVotingAgendaCreation.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/agenda/create")
+        return mockMvc.perform(post("/cooperative/assembly/voting/agenda")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryPerformExtraSizedPropertyCreation() throws Exception {
         final String bodyContent = Resources.toString(requestExtraSizedTitleVotingAgendaCreation.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/agenda/create")
+        return mockMvc.perform(post("/cooperative/assembly/voting/agenda")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }

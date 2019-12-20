@@ -286,14 +286,14 @@ public class VotingSessionControllerTest {
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.length()").value(2))
-                .andExpect(jsonPath("$.errors[*]").exists())
-                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
-                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.invalid", "voting.session.agenda.id.not.empty")))
-                .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField)))
-                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder(new String[] { null, null })));
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0]").exists())
+                .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
+                .andExpect(jsonPath("$.errors[0].title").value(incorrectRequestFormat))
+                .andExpect(jsonPath("$.errors[0].detail").value("voting.session.agenda.id.not.empty"))
+                .andExpect(jsonPath("$.errors[0].source").exists())
+                .andExpect(jsonPath("$.errors[0].source.pointer").value(agendaIdField))
+                .andExpect(jsonPath("$.errors[0].source.parameter").doesNotExist());
     }
 
     @Test
@@ -394,56 +394,56 @@ public class VotingSessionControllerTest {
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithEmptyAgendaId() throws Exception {
         final String bodyContent = Resources.toString(requestEmptyAgendaIdVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithNullAgendaId() throws Exception {
         final String bodyContent = Resources.toString(requestNullAgendaIdVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithExtraSizedAgendaId() throws Exception {
         final String bodyContent = Resources.toString(requestExtraSizedAgendaIdVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithMinorSizedAgendaId() throws Exception {
         final String bodyContent = Resources.toString(requestMinorSizedAgendaIdVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithWronglyFormattedAgendaId() throws Exception {
         final String bodyContent = Resources.toString(requestWronglyFormattedAgendaIdVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithNegativeDeadlineMinutes() throws Exception {
         final String bodyContent = Resources.toString(requestNegativeDeadlineMinutesVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
 
     private ResultActions tryOpenSessionWithZeroDeadlineMinutes() throws Exception {
         final String bodyContent = Resources.toString(requestZeroDeadlineMinutesVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
@@ -454,7 +454,7 @@ public class VotingSessionControllerTest {
         when(votingSessionService.openFor(agendaUUID, DEFAULT_DEADLINE_MINUTES)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestNullDeadlineMinutesVotingSessionOpening.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
@@ -463,7 +463,7 @@ public class VotingSessionControllerTest {
         when(votingSessionService.openFor(anyString(), anyLong())).thenThrow(new NotFoundReferenceException("VotingAgenda", "voting.agenda.not.found"));
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
@@ -472,7 +472,7 @@ public class VotingSessionControllerTest {
         when(votingSessionService.openFor(anyString(), anyLong())).thenThrow(new ValidationException("voting.session.already.opened"));
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
-        return mockMvc.perform(post("/voting/session/open")
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
     }
