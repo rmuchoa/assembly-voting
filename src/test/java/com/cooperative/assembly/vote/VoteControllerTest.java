@@ -2,6 +2,8 @@ package com.cooperative.assembly.vote;
 
 import com.cooperative.assembly.error.ResponseErrorHandler;
 import com.cooperative.assembly.voting.agenda.VotingAgenda;
+import com.cooperative.assembly.voting.session.VotingSession;
+import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
 import com.google.common.io.Resources;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,8 +23,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDateTime;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
+import static java.time.LocalDateTime.now;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -80,24 +85,33 @@ public class VoteControllerTest {
 
     private String voteUUID;
     private String agendaUUID;
+    private String sessionUUID;
     private String userId;
     private String agendaTitle;
     private VoteChoice positiveChoice;
+    private LocalDateTime openingTime;
+    private LocalDateTime closingTime;
     private String requestFormatErrorCode;
     private String incorrectRequestFormat;
     private String userIdField;
     private String agendaIdField;
     private String choiceField;
     private VotingAgenda agenda;
+    private VotingSessionCanvass canvass;
+    private VotingSession session;
 
     @Before
     public void setup() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
         this.voteUUID = randomUUID().toString();
+        this.sessionUUID = randomUUID().toString();
         this.userId = "12429593009";
         this.agendaUUID = "2b6f8057-cd5e-4a20-afa0-c04419a8983b";
         this.agendaTitle = "Eleição de Diretoria";
+        this.openingTime = now().withNano(0);
+        this.closingTime = openingTime.minusMinutes(5);
         this.agenda = new VotingAgenda(agendaUUID, agendaTitle);
+        this.session = new VotingSession(sessionUUID, agenda, null, openingTime, closingTime);
         this.positiveChoice = YES;
         this.requestFormatErrorCode = "ERR0100";
         this.incorrectRequestFormat = "Incorrect request format";
@@ -124,9 +138,11 @@ public class VoteControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(voteUUID))
                 .andExpect(jsonPath("$.data.userId").value(userId))
-                .andExpect(jsonPath("$.data.agenda").exists())
-                .andExpect(jsonPath("$.data.agenda.id").value(agendaUUID))
-                .andExpect(jsonPath("$.data.agenda.title").value(agendaTitle))
+                .andExpect(jsonPath("$.data.session").exists())
+                .andExpect(jsonPath("$.data.session.id").value(sessionUUID))
+                .andExpect(jsonPath("$.data.session.agenda").exists())
+                .andExpect(jsonPath("$.data.session.agenda.id").value(agendaUUID))
+                .andExpect(jsonPath("$.data.session.agenda.title").value(agendaTitle))
                 .andExpect(jsonPath("$.data.choice").value(positiveChoice.toString()));
     }
 
@@ -374,7 +390,7 @@ public class VoteControllerTest {
     }
 
     private ResultActions performSuccessRegister() throws Exception {
-        Vote vote = new Vote(voteUUID, userId, agenda, positiveChoice);
+        Vote vote = new Vote(voteUUID, userId, agenda, session, positiveChoice);
         when(service.chooseVote(userId, agendaUUID, positiveChoice)).thenReturn(vote);
 
         final String bodyContent = Resources.toString(requestChooseVote.getURL(), UTF_8);

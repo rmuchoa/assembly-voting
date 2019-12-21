@@ -11,6 +11,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
+import static java.time.LocalDateTime.now;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,5 +27,14 @@ public class VotingSession {
     private VotingSessionCanvass canvass;
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;
+
+    /**
+     * Check if closing time is past before right now to infer this voting session is still open
+     *
+     * @return
+     */
+    public Boolean isNoLongerOpen() {
+        return now().isAfter(closingTime);
+    }
 
 }

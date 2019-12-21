@@ -2,7 +2,6 @@ package com.cooperative.assembly.voting.session;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface VotingSessionRepository extends MongoRepository<VotingSession, String> {

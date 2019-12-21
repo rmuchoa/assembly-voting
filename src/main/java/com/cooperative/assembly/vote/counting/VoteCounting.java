@@ -1,6 +1,5 @@
 package com.cooperative.assembly.vote.counting;
 
-import com.cooperative.assembly.voting.session.VotingSession;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

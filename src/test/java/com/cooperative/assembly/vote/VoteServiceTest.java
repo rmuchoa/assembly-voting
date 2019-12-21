@@ -88,7 +88,7 @@ public class VoteServiceTest {
         this.expectedAgenda = new VotingAgenda(agendaId, agendaTitle);
         this.expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, 0, 0, 0);
         this.expectedSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime, closingTime);
-        this.expectedVote = new Vote(voteId, userId, expectedAgenda, YES);
+        this.expectedVote = new Vote(voteId, userId, expectedAgenda, expectedSession, YES);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class VoteServiceTest {
 
     @Test
     public void shouldReturnValidationExceptionOnTryingToChooseVoteForUserAndAgendaWhenFoundListedBetweenVotesThatAlreadyHasBeenVoted() {
-        Vote vote = new Vote(voteId, userId, expectedAgenda, YES);
+        Vote vote = new Vote(voteId, userId, expectedAgenda, expectedSession, YES);
         when(repository.findByUserIdAndAgendaId(userId, agendaId)).thenReturn(asList(vote));
 
         assertThatExceptionOfType(ValidationException.class)
@@ -208,7 +208,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
         Vote vote = service.chooseVote(userId, agendaId, YES);
@@ -223,7 +223,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
         service.chooseVote(userId, agendaId, YES);
@@ -236,7 +236,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
         service.chooseVote(userId, agendaId, YES);
@@ -253,7 +253,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), NO);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, NO);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
         service.chooseVote(userId, agendaId, NO);
@@ -269,19 +269,19 @@ public class VoteServiceTest {
     public void shouldIncrementMultipleChoicesOnVotingSessionCanvassWhenChoosingVoteForSessionAgenda() {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
 
-        Vote vote1 = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
-        Vote vote2 = new Vote(voteId, userId, expectedSession.getAgenda(), NO);
-        Vote vote3 = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
-        Vote vote4 = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
-        Vote vote5 = new Vote(voteId, userId, expectedSession.getAgenda(), YES);
-        Vote vote6 = new Vote(voteId, userId, expectedSession.getAgenda(), NO);
+        Vote vote1 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
+        Vote vote2 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, NO);
+        Vote vote3 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
+        Vote vote4 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
+        Vote vote5 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, YES);
+        Vote vote6 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, NO);
 
-        service.applyVoteOnAgendaSession(agendaId, vote1);
-        service.applyVoteOnAgendaSession(agendaId, vote2);
-        service.applyVoteOnAgendaSession(agendaId, vote3);
-        service.applyVoteOnAgendaSession(agendaId, vote4);
-        service.applyVoteOnAgendaSession(agendaId, vote5);
-        service.applyVoteOnAgendaSession(agendaId, vote6);
+        service.applyVoteOnSessionCanvass(agendaId, vote1);
+        service.applyVoteOnSessionCanvass(agendaId, vote2);
+        service.applyVoteOnSessionCanvass(agendaId, vote3);
+        service.applyVoteOnSessionCanvass(agendaId, vote4);
+        service.applyVoteOnSessionCanvass(agendaId, vote5);
+        service.applyVoteOnSessionCanvass(agendaId, vote6);
 
         verify(votingSessionCanvassService, times(6)).saveCanvass(canvassCaptor.capture());
         assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(agendaTitle)));

@@ -8,20 +8,17 @@ import com.cooperative.assembly.voting.session.VotingSession;
 import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
 import com.cooperative.assembly.voting.session.VotingSessionService;
 import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvassService;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
-import static java.time.LocalDateTime.now;
-import static com.cooperative.assembly.user.VotingAbility.UNABLE_TO_VOTE;
-import static com.cooperative.assembly.vote.VoteChoice.YES;
-import static com.cooperative.assembly.vote.VoteChoice.NO;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
+@Log4j2
 @Service
 public class VoteService {
 
@@ -50,7 +47,7 @@ public class VoteService {
     public Vote chooseVote(final String userId, final String agendaId, final VoteChoice choice) {
         Vote vote = saveChoice(userId, agendaId, choice);
 
-        applyVoteOnAgendaSession(agendaId, vote);
+        applyVoteOnSessionCanvass(agendaId, vote);
 
         return vote;
     }
@@ -67,6 +64,7 @@ public class VoteService {
         Vote vote = validateAndBuildVote(userId, agendaId);
         vote.setChoice(choice);
 
+        log.debug("Saving vote made by user");
         return repository.save(vote);
     }
 
@@ -79,6 +77,7 @@ public class VoteService {
      */
     protected Vote validateAndBuildVote(final String userId, final String agendaId) {
         if (hasUserAlreadyVotedOnAgenda(userId, agendaId)) {
+            log.error("Found previous vote on this agenda by the same user");
             throw new ValidationException("vote.already.exists", "userId|agendaId", format("%s|%s", userId, agendaId));
         }
 
@@ -86,7 +85,7 @@ public class VoteService {
         VotingSession session = loadVotingSession(agendaId);
 
         String id = randomUUID().toString();
-        return new Vote(id, user.getId(), session.getAgenda());
+        return new Vote(id, user.getId(), session.getAgenda(), session);
     }
 
     /**
@@ -112,6 +111,7 @@ public class VoteService {
     private User loadUser(final String userId) {
         User user = userService.loadUser(userId);
         if (user != null && isUnableToVote(user)) {
+            log.error("Found user is not able to vote on this Cooperative", user);
             throw new ValidationException("user.unable.to.vote", "userId", userId);
         }
 
@@ -126,7 +126,7 @@ public class VoteService {
      */
     private Boolean isUnableToVote(final User user) {
         VotingAbility ability = user.getAbility();
-        return UNABLE_TO_VOTE.equals(ability);
+        return ability.isUserUnableToVote();
     }
 
     /**
@@ -136,12 +136,12 @@ public class VoteService {
      * @param agendaId
      * @param vote
      */
-    protected void applyVoteOnAgendaSession(final String agendaId, final Vote vote) {
-        VotingSession session = loadVotingSession(agendaId);
-
+    protected void applyVoteOnSessionCanvass(final String agendaId, final Vote vote) {
+        VotingSession session = vote.getSession();
         VotingSessionCanvass canvass = session.getCanvass();
         applyChoice(canvass, vote);
 
+        log.debug("Save totalized voting session canvass", canvass);
         votingSessionCanvassService.saveCanvass(canvass);
     }
 
@@ -152,33 +152,14 @@ public class VoteService {
      * @param vote
      */
     private void applyChoice(final VotingSessionCanvass canvass, final Vote vote) {
-        if (isAffirmativeChoice(vote.getChoice())) {
+        VoteChoice choice = vote.getChoice();
+        if (choice.isAffirmative()) {
             canvass.incrementAffirmative();
         }
 
-        if (isNegativeChoice(vote.getChoice())) {
+        if (choice.isNegative()) {
             canvass.incrementNegative();
         }
-    }
-
-    /**
-     * check if made choice is affirmative
-     *
-     * @param choice
-     * @return
-     */
-    private Boolean isAffirmativeChoice(final VoteChoice choice) {
-        return YES.equals(choice);
-    }
-
-    /**
-     * check if made choice is negative
-     *
-     * @param choice
-     * @return
-     */
-    private Boolean isNegativeChoice(final VoteChoice choice) {
-        return NO.equals(choice);
     }
 
     /**
@@ -191,22 +172,12 @@ public class VoteService {
      */
     private VotingSession loadVotingSession(final String agendaId) {
         VotingSession session = votingSessionService.loadVoteSession(agendaId);
-        if (session != null && isNoLongerOpen(session)) {
+        if (session != null && session.isNoLongerOpen()) {
+            log.debug("Found agenda session is closed for voting now", session);
             throw new ValidationException("voting.session.no.longer.open", "agendaId", agendaId);
         }
 
         return session;
-    }
-
-    /**
-     * Check if closing time is past before right now to infer this voting session is still open
-     *
-     * @param session
-     * @return
-     */
-    private Boolean isNoLongerOpen(final VotingSession session) {
-        LocalDateTime closingTimeSession = session.getClosingTime();
-        return now().isAfter(closingTimeSession);
     }
 
 }

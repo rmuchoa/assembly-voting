@@ -4,9 +4,11 @@ import com.cooperative.assembly.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.voting.session.VotingSession;
 import com.cooperative.assembly.voting.session.VotingSessionService;
 import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+@Log4j2
 @Service
 public class VoteCountingService {
 
@@ -24,6 +26,7 @@ public class VoteCountingService {
      * @return
      */
     public VoteCounting getVoteCounting(final String agendaId) {
+        log.debug("Finding voting session by agendaId: ", agendaId);
         VotingSession session = votingSessionService.loadVoteSession(agendaId);
         VotingSessionCanvass canvass = session.getCanvass();
         VotingAgenda agenda = session.getAgenda();

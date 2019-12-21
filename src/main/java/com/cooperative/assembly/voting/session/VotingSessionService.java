@@ -6,15 +6,16 @@ import com.cooperative.assembly.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.voting.agenda.VotingAgendaService;
 import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
 import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvassService;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.springframework.util.CollectionUtils.isEmpty;
 import static java.util.UUID.randomUUID;
 
+@Log4j2
 @Service
 public class VotingSessionService {
 
@@ -40,6 +41,7 @@ public class VotingSessionService {
     public VotingSession openFor(final String agendaId, final Long deadlineMinutes) {
         Optional<VotingSession> session = repository.findByAgendaId(agendaId);
         if (session.isPresent()) {
+            log.error("There is already an opened voting session for this agenda", agendaId);
             throw new ValidationException("voting.session.already.opened", "agendaId", agendaId);
         }
 
@@ -57,6 +59,7 @@ public class VotingSessionService {
     protected VotingAgenda loadSessionAgenda(final String agendaId) {
         Optional<VotingAgenda> agenda = votingAgendaService.loadAgenda(agendaId);
         if (!agenda.isPresent()) {
+            log.error("Voting agenda was not found to open session", agendaId);
             throw new NotFoundReferenceException("VotingAgenda", "voting.agenda.not.found");
         }
 
@@ -73,6 +76,7 @@ public class VotingSessionService {
     public VotingSession loadVoteSession(final String agendaId) {
         Optional<VotingSession> session = repository.findByAgendaId(agendaId);
         if (!session.isPresent()) {
+            log.error("Voting session was not found to vote on it's agenda", agendaId);
             throw new NotFoundReferenceException("VotingSession", "voting.session.not.found");
         }
 
@@ -94,6 +98,7 @@ public class VotingSessionService {
         VotingSessionCanvass canvass = createSessionCanvass(agenda);
 
         VotingSession votingSession = new VotingSession(id, agenda, canvass, openingTime, closingTime);
+        log.debug("Save voting session to start voting");
         return repository.save(votingSession);
     }
 
@@ -105,6 +110,7 @@ public class VotingSessionService {
      */
     protected VotingSessionCanvass createSessionCanvass(final VotingAgenda agenda) {
         VotingSessionCanvass emptyCanvass = buildNewSessionCanvas(agenda);
+        log.error("Building new voting session canvas", emptyCanvass);
 
         return votingSessionCanvassService.saveCanvass(emptyCanvass);
     }

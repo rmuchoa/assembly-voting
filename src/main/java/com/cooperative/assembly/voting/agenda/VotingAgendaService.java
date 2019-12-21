@@ -1,5 +1,6 @@
 package com.cooperative.assembly.voting.agenda;
 
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -7,6 +8,7 @@ import java.util.Optional;
 
 import static java.util.UUID.randomUUID;
 
+@Log4j2
 @Service
 public class VotingAgendaService {
 
@@ -28,6 +30,7 @@ public class VotingAgendaService {
         String id = randomUUID().toString();
         VotingAgenda votingAgenda = new VotingAgenda(id, title);
 
+        log.debug("Saving agenda to start voting session");
         return repository.save(votingAgenda);
     }
 

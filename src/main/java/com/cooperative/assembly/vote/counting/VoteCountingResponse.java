@@ -1,12 +1,6 @@
 package com.cooperative.assembly.vote.counting;
 
 import com.cooperative.assembly.response.ResponseJson;
-import com.cooperative.assembly.voting.agenda.VotingAgenda;
-import com.cooperative.assembly.voting.agenda.VotingAgendaResponse;
-import com.cooperative.assembly.voting.session.VotingSession;
-import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
-import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvassResponse;
-import com.cooperative.assembly.voting.session.VotingSessionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

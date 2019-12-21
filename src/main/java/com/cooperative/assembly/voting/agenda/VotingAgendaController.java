@@ -3,6 +3,7 @@ package com.cooperative.assembly.voting.agenda;
 import com.cooperative.assembly.response.ResponseJson;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
+@Log4j2
 @RestController
 @RequestMapping("cooperative/assembly/voting/agenda")
 @Api(tags = "Voting Agenda")
@@ -32,6 +34,7 @@ public class VotingAgendaController {
             @Valid @RequestBody VotingAgendaRequest request) {
 
         VotingAgenda votingAgenda = service.create(request.getTitle());
+        log.debug("Created voting agenda to allow start voting session", votingAgenda);
 
         return ResponseEntity.ok().body(VotingAgendaResponse.buildResponse(votingAgenda));
     }

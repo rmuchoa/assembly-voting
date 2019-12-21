@@ -19,11 +19,19 @@ public class VotingSessionCanvass {
     private Integer affirmativeVotes;
     private Integer negativeVotes;
 
+    /**
+     * Increment an afirmative vote, increasing total and affirmative votes
+     *
+     */
     public void incrementAffirmative() {
         this.affirmativeVotes++;
         this.totalVotes++;
     }
 
+    /**
+     * Increment an negative vote, increasing total and negative votes
+     *
+     */
     public void incrementNegative() {
         this.negativeVotes++;
         this.totalVotes++;
