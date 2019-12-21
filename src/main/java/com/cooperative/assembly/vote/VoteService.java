@@ -5,7 +5,9 @@ import com.cooperative.assembly.user.UserService;
 import com.cooperative.assembly.user.VotingAbility;
 import com.cooperative.assembly.error.exception.ValidationException;
 import com.cooperative.assembly.voting.session.VotingSession;
+import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
 import com.cooperative.assembly.voting.session.VotingSessionService;
+import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvassService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,20 +18,24 @@ import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
 import static java.time.LocalDateTime.now;
 import static com.cooperative.assembly.user.VotingAbility.UNABLE_TO_VOTE;
+import static com.cooperative.assembly.vote.VoteChoice.YES;
+import static com.cooperative.assembly.vote.VoteChoice.NO;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Service
 public class VoteService {
 
-    private VotingSessionService votingSessionService;
-    private UserService userService;
     private VoteRepository repository;
+    private UserService userService;
+    private VotingSessionService votingSessionService;
+    private VotingSessionCanvassService votingSessionCanvassService;
 
     @Autowired
-    public VoteService(final VotingSessionService votingSessionService, final UserService userService, final VoteRepository repository) {
-        this.votingSessionService = votingSessionService;
-        this.userService = userService;
+    public VoteService(final VoteRepository repository, final UserService userService, final VotingSessionService votingSessionService, final VotingSessionCanvassService votingSessionCanvassService) {
         this.repository = repository;
+        this.userService = userService;
+        this.votingSessionService = votingSessionService;
+        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     /**
@@ -41,8 +47,38 @@ public class VoteService {
      * @param choice
      * @return
      */
-    public Vote choiceVote(final String userId, final String agendaId, final VoteChoice choice) {
-        if (hasUserAlreadyVotedAgenda(userId, agendaId)) {
+    public Vote chooseVote(final String userId, final String agendaId, final VoteChoice choice) {
+        Vote vote = saveChoice(userId, agendaId, choice);
+
+        applyVoteOnAgendaSession(agendaId, vote);
+
+        return vote;
+    }
+
+    /**
+     * Build and save valid vote by agenda with user choice.
+     *
+     * @param userId
+     * @param agendaId
+     * @param choice
+     * @return
+     */
+    protected Vote saveChoice(final String userId, final String agendaId, final VoteChoice choice) {
+        Vote vote = validateAndBuildVote(userId, agendaId);
+        vote.setChoice(choice);
+
+        return repository.save(vote);
+    }
+
+    /**
+     * Validate and build vote object by agenda to save user choice.
+     *
+     * @param userId
+     * @param agendaId
+     * @return
+     */
+    protected Vote validateAndBuildVote(final String userId, final String agendaId) {
+        if (hasUserAlreadyVotedOnAgenda(userId, agendaId)) {
             throw new ValidationException("vote.already.exists", "userId|agendaId", format("%s|%s", userId, agendaId));
         }
 
@@ -50,9 +86,7 @@ public class VoteService {
         VotingSession session = loadVotingSession(agendaId);
 
         String id = randomUUID().toString();
-        Vote vote = new Vote(id, user.getId(), session.getAgenda(), choice);
-
-        return repository.save(vote);
+        return new Vote(id, user.getId(), session.getAgenda());
     }
 
     /**
@@ -62,7 +96,7 @@ public class VoteService {
      * @param agendaId
      * @return
      */
-    private Boolean hasUserAlreadyVotedAgenda(final String userId, final String agendaId) {
+    private Boolean hasUserAlreadyVotedOnAgenda(final String userId, final String agendaId) {
         List<Vote> votes = repository.findByUserIdAndAgendaId(userId, agendaId);
         return !isEmpty(votes);
     }
@@ -93,6 +127,58 @@ public class VoteService {
     private Boolean isUnableToVote(final User user) {
         VotingAbility ability = user.getAbility();
         return UNABLE_TO_VOTE.equals(ability);
+    }
+
+    /**
+     * Load agenda session and apply vote on session canvass by affirmative ou negative choice.
+     * Updade session canvass with current totalized canvass.
+     *
+     * @param agendaId
+     * @param vote
+     */
+    protected void applyVoteOnAgendaSession(final String agendaId, final Vote vote) {
+        VotingSession session = loadVotingSession(agendaId);
+
+        VotingSessionCanvass canvass = session.getCanvass();
+        applyChoice(canvass, vote);
+
+        votingSessionCanvassService.saveCanvass(canvass);
+    }
+
+    /**
+     * Apply vote choice on session canvass by affirmative or negative choice.
+     *
+     * @param canvass
+     * @param vote
+     */
+    private void applyChoice(final VotingSessionCanvass canvass, final Vote vote) {
+        if (isAffirmativeChoice(vote.getChoice())) {
+            canvass.incrementAffirmative();
+        }
+
+        if (isNegativeChoice(vote.getChoice())) {
+            canvass.incrementNegative();
+        }
+    }
+
+    /**
+     * check if made choice is affirmative
+     *
+     * @param choice
+     * @return
+     */
+    private Boolean isAffirmativeChoice(final VoteChoice choice) {
+        return YES.equals(choice);
+    }
+
+    /**
+     * check if made choice is negative
+     *
+     * @param choice
+     * @return
+     */
+    private Boolean isNegativeChoice(final VoteChoice choice) {
+        return NO.equals(choice);
     }
 
     /**

@@ -16,8 +16,6 @@ import javax.validation.Valid;
 @Api(tags = "Vote")
 public class VoteController {
 
-    private static final Long DEFAULT_DEADLINE_MINUTES = 1L;
-
     private VoteService service;
 
     @Autowired
@@ -30,8 +28,11 @@ public class VoteController {
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     @Transactional
-    public ResponseEntity<ResponseJson<VoteResponse, Void>> register(@Valid @RequestBody VoteRequest request) {
-        Vote vote = service.choiceVote(request.getUserId(), request.getAgendaId(), request.getChoice());
+    public ResponseEntity<ResponseJson<VoteResponse, Void>> register(
+            @Valid @RequestBody VoteRequest request) {
+
+        Vote vote = service.chooseVote(request.getUserId(), request.getAgendaId(), request.getChoice());
+
         return ResponseEntity.ok().body(VoteResponse.buildResponse(vote));
     }
 }

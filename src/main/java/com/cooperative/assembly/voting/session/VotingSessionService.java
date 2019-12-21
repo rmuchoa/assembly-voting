@@ -4,28 +4,29 @@ import com.cooperative.assembly.error.exception.NotFoundReferenceException;
 import com.cooperative.assembly.error.exception.ValidationException;
 import com.cooperative.assembly.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.voting.agenda.VotingAgendaService;
+import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
+import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvassService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static java.util.UUID.randomUUID;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
 
 @Service
 public class VotingSessionService {
 
     private VotingSessionRepository repository;
     private VotingAgendaService votingAgendaService;
+    private VotingSessionCanvassService votingSessionCanvassService;
 
     @Autowired
-    public VotingSessionService(final VotingAgendaService votingAgendaService, final VotingSessionRepository repository) {
-        this.votingAgendaService = votingAgendaService;
+    public VotingSessionService(final VotingSessionRepository repository, final VotingAgendaService votingAgendaService, final VotingSessionCanvassService votingSessionCanvassService) {
         this.repository = repository;
+        this.votingAgendaService = votingAgendaService;
+        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     /**
@@ -90,8 +91,33 @@ public class VotingSessionService {
         LocalDateTime openingTime = LocalDateTime.now();
         LocalDateTime closingTime = LocalDateTime.now().plusMinutes(deadlineMinutes);
 
-        VotingSession votingSession = new VotingSession(id, agenda, openingTime, closingTime);
+        VotingSessionCanvass canvass = createSessionCanvass(agenda);
+
+        VotingSession votingSession = new VotingSession(id, agenda, canvass, openingTime, closingTime);
         return repository.save(votingSession);
+    }
+
+    /**
+     * Build and save new session canvass for voting session.
+     *
+     * @param agenda
+     * @return
+     */
+    protected VotingSessionCanvass createSessionCanvass(final VotingAgenda agenda) {
+        VotingSessionCanvass emptyCanvass = buildNewSessionCanvas(agenda);
+
+        return votingSessionCanvassService.saveCanvass(emptyCanvass);
+    }
+
+    /**
+     * Build empty session canvass for init voting session
+     *
+     * @param agenda
+     * @return
+     */
+    protected VotingSessionCanvass buildNewSessionCanvas(final VotingAgenda agenda) {
+        String id = randomUUID().toString();
+        return new VotingSessionCanvass(id, agenda.getTitle(), 0, 0, 0);
     }
 
 }

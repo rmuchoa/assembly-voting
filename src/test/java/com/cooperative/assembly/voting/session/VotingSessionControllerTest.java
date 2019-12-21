@@ -4,6 +4,7 @@ import com.cooperative.assembly.error.ResponseErrorHandler;
 import com.cooperative.assembly.error.exception.NotFoundReferenceException;
 import com.cooperative.assembly.error.exception.ValidationException;
 import com.cooperative.assembly.voting.agenda.VotingAgenda;
+import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
 import com.google.common.io.Resources;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,6 +78,7 @@ public class VotingSessionControllerTest {
     @Value("classpath:/requestZeroDeadlineMinutesVotingSessionOpening.json")
     private Resource requestZeroDeadlineMinutesVotingSessionOpening;
 
+    private String canvassUUID;
     private String sessionUUID;
     private String agendaUUID;
     private String agendaTitle;
@@ -94,6 +96,7 @@ public class VotingSessionControllerTest {
     @Before
     public void setup() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+        this.canvassUUID = randomUUID().toString();
         this.sessionUUID = randomUUID().toString();
         this.agendaUUID = "2b6f8057-cd5e-4a20-afa0-c04419a8983b";
         this.agendaTitle = "Eleição de Diretoria";
@@ -233,38 +236,6 @@ public class VotingSessionControllerTest {
     }
 
     @Test
-    public void shouldReturnInvalidSizeResponseErrorWhenTryingToPerformVotingSessionOpeningWithExtraSizedAgendaIdRequestContentProperty() throws Exception {
-        final ResultActions result = tryOpenSessionWithExtraSizedAgendaId();
-
-        result.andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.length()").value(2))
-                .andExpect(jsonPath("$.errors[*]").exists())
-                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
-                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.invalid.size", "voting.session.agenda.id.invalid.format")))
-                .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField)))
-                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("2b6f8057-cd5e-4a20-afa0-c04419a8983b-f9ksa1s3", "2b6f8057-cd5e-4a20-afa0-c04419a8983b-f9ksa1s3")));
-    }
-
-    @Test
-    public void shouldReturnInvalidSizeResponseErrorWhenTryingToPerformVotingSessionOpeningWithMinorSizedAgendaIdRequestContentProperty() throws Exception {
-        final ResultActions result = tryOpenSessionWithMinorSizedAgendaId();
-
-        result.andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.length()").value(2))
-                .andExpect(jsonPath("$.errors[*]").exists())
-                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
-                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.invalid.size", "voting.session.agenda.id.invalid.format")))
-                .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField)))
-                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("2b6f8057-cd5e-4a20-afa0", "2b6f8057-cd5e-4a20-afa0")));
-    }
-
-    @Test
     public void shouldReturnNotEmptyAndInvalidSizedResponseErrorWhenTryingToPerformVotingSessionOpeningWithEmptyAgendaIdRequestContentProperty() throws Exception {
         final ResultActions result = tryOpenSessionWithEmptyAgendaId();
 
@@ -274,7 +245,7 @@ public class VotingSessionControllerTest {
                 .andExpect(jsonPath("$.errors[*]").exists())
                 .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode, requestFormatErrorCode)))
                 .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.not.empty", "voting.session.agenda.id.invalid.size", "voting.session.agenda.id.invalid.format")))
+                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.not.empty", "voting.session.agenda.id.invalid.size", "voting.session.agenda.id.invalid.uuid.format")))
                 .andExpect(jsonPath("$.errors[*].source").exists())
                 .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField, agendaIdField)))
                 .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("", "", "")));
@@ -297,6 +268,38 @@ public class VotingSessionControllerTest {
     }
 
     @Test
+    public void shouldReturnInvalidSizeResponseErrorWhenTryingToPerformVotingSessionOpeningWithExtraSizedAgendaIdRequestContentProperty() throws Exception {
+        final ResultActions result = tryOpenSessionWithExtraSizedAgendaId();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors[*]").exists())
+                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
+                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
+                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.invalid.size", "voting.session.agenda.id.invalid.uuid.format")))
+                .andExpect(jsonPath("$.errors[*].source").exists())
+                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField)))
+                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("2b6f8057-cd5e-4a20-afa0-c04419a8983b-f9ksa1s3", "2b6f8057-cd5e-4a20-afa0-c04419a8983b-f9ksa1s3")));
+    }
+
+    @Test
+    public void shouldReturnInvalidSizeResponseErrorWhenTryingToPerformVotingSessionOpeningWithMinorSizedAgendaIdRequestContentProperty() throws Exception {
+        final ResultActions result = tryOpenSessionWithMinorSizedAgendaId();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors[*]").exists())
+                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
+                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
+                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("voting.session.agenda.id.invalid.size", "voting.session.agenda.id.invalid.uuid.format")))
+                .andExpect(jsonPath("$.errors[*].source").exists())
+                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField)))
+                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("2b6f8057-cd5e-4a20-afa0", "2b6f8057-cd5e-4a20-afa0")));
+    }
+
+    @Test
     public void shouldReturnInvalidFormatResponseErrorWhenTryingToPerformVotingSessionOpeningWithWronglyFormattedAgendaIdRequestContentProperty() throws Exception {
         final ResultActions result = tryOpenSessionWithWronglyFormattedAgendaId();
 
@@ -306,7 +309,7 @@ public class VotingSessionControllerTest {
                 .andExpect(jsonPath("$.errors[0]").exists())
                 .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
                 .andExpect(jsonPath("$.errors[0].title").value(incorrectRequestFormat))
-                .andExpect(jsonPath("$.errors[0].detail").value("voting.session.agenda.id.invalid.format"))
+                .andExpect(jsonPath("$.errors[0].detail").value("voting.session.agenda.id.invalid.uuid.format"))
                 .andExpect(jsonPath("$.errors[0].source").exists())
                 .andExpect(jsonPath("$.errors[0].source.pointer").value(agendaIdField))
                 .andExpect(jsonPath("$.errors[0].source.parameter").value("2b6f8057-cd5e-4a20-afa0c04419a898-3b"));
@@ -390,7 +393,8 @@ public class VotingSessionControllerTest {
 
     private ResultActions performSuccessOpening() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, openingTime, closingTime);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
@@ -450,7 +454,8 @@ public class VotingSessionControllerTest {
 
     private ResultActions performNullDeadlineMinutesOpeningSession() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, openingTime, closingTimeBasedOnDefaultDeadline);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTimeBasedOnDefaultDeadline);
         when(votingSessionService.openFor(agendaUUID, DEFAULT_DEADLINE_MINUTES)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestNullDeadlineMinutesVotingSessionOpening.getURL(), UTF_8);

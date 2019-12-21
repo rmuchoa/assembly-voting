@@ -21,4 +21,10 @@ public class Vote {
     private VotingAgenda agenda;
     private VoteChoice choice;
 
+    public Vote(final String id, final String userId, final VotingAgenda agenda) {
+        this.id = id;
+        this.userId = userId;
+        this.agenda = agenda;
+    }
+
 }

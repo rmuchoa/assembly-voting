@@ -30,7 +30,9 @@ public class VotingSessionController {
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     @Transactional
-    public ResponseEntity<ResponseJson<VotingSessionResponse, Void>> open(@Valid @RequestBody VotingSessionRequest request) {
+    public ResponseEntity<ResponseJson<VotingSessionResponse, Void>> open(
+            @Valid @RequestBody VotingSessionRequest request) {
+
         if (request.getDeadlineMinutes() == null) {
             request.setDeadlineMinutes(DEFAULT_DEADLINE_MINUTES);
         }

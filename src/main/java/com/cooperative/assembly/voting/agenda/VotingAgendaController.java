@@ -28,8 +28,11 @@ public class VotingAgendaController {
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
     @Transactional
-    public ResponseEntity<ResponseJson<VotingAgendaResponse, Void>> create(@Valid @RequestBody VotingAgendaRequest request) {
+    public ResponseEntity<ResponseJson<VotingAgendaResponse, Void>> create(
+            @Valid @RequestBody VotingAgendaRequest request) {
+
         VotingAgenda votingAgenda = service.create(request.getTitle());
+
         return ResponseEntity.ok().body(VotingAgendaResponse.buildResponse(votingAgenda));
     }
 
