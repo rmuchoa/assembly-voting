@@ -13,7 +13,6 @@ import javax.validation.constraints.*;
 public class VoteRequest {
 
     @NotBlank(message = "vote.user.id.not.empty")
-    @Size(min= 11, max = 11, message = "vote.user.id.invalid.size")
     @CPF(message = "vote.user.id.invalid.cpf.format")
     private String userId;
 
@@ -24,5 +23,9 @@ public class VoteRequest {
 
     @NotNull(message = "vote.choice.not.null")
     private VoteChoice choice;
+
+    public String getUserId() {
+        return userId.replaceAll("\\D+","");
+    }
 
 }

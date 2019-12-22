@@ -53,6 +53,9 @@ public class VoteControllerTest {
     @Value("classpath:/requestChooseVote.json")
     private Resource requestChooseVote;
 
+    @Value("classpath:/requestChooseVoteWithFormattedUserId.json")
+    private Resource requestChooseVoteWithFormattedUserId;
+
     @Value("classpath:/requestEmptyUserIdVoteRegister.json")
     private Resource requestEmptyUserIdVoteRegister;
 
@@ -131,8 +134,34 @@ public class VoteControllerTest {
     }
 
     @Test
-    public void shouldReturnRegisteredVoteWithGeneratedUUID() throws Exception {
+    public void shouldReturnRegisteredVoteWithGeneratedUUIDAndSessionReference() throws Exception {
         final ResultActions result = performSuccessRegister();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(voteUUID))
+                .andExpect(jsonPath("$.data.userId").value(userId))
+                .andExpect(jsonPath("$.data.session").exists())
+                .andExpect(jsonPath("$.data.session.id").value(sessionUUID))
+                .andExpect(jsonPath("$.data.session.agenda").exists())
+                .andExpect(jsonPath("$.data.session.agenda.id").value(agendaUUID))
+                .andExpect(jsonPath("$.data.session.agenda.title").value(agendaTitle))
+                .andExpect(jsonPath("$.data.choice").value(positiveChoice.toString()));
+    }
+
+    @Test
+    public void shouldReturnResponseDataAndNotReturnResponseErrorsWhenPerformSuccessVoteChoiceWithFormattedUserId() throws Exception {
+        final ResultActions result = performSuccessRegisterWithFormattedUserId();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").exists())
+                .andExpect(jsonPath("$.errors").doesNotExist());
+    }
+
+    @Test
+    public void shouldReturnRegisteredVoteWithGeneratedUUIDAndSessionReferenceWithFormattedUserId() throws Exception {
+        final ResultActions result = performSuccessRegisterWithFormattedUserId();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
@@ -243,14 +272,14 @@ public class VoteControllerTest {
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists())
-                .andExpect(jsonPath("$.errors.length()").value(3))
+                .andExpect(jsonPath("$.errors.length()").value(2))
                 .andExpect(jsonPath("$.errors[*]").exists())
-                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode, requestFormatErrorCode)))
-                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.user.id.invalid.size", "vote.user.id.not.empty", "vote.user.id.invalid.cpf.format")))
+                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
+                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
+                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.user.id.not.empty", "vote.user.id.invalid.cpf.format")))
                 .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(userIdField, userIdField, userIdField)))
-                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("", "", "")));
+                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(userIdField, userIdField)))
+                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("", "")));
     }
 
     @Test
@@ -277,14 +306,14 @@ public class VoteControllerTest {
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists())
-                .andExpect(jsonPath("$.errors.length()").value(2))
+                .andExpect(jsonPath("$.errors.length()").value(1))
                 .andExpect(jsonPath("$.errors[*]").exists())
-                .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
-                .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.user.id.invalid.size", "vote.user.id.invalid.cpf.format")))
+                .andExpect(jsonPath("$.errors[*].code").value(requestFormatErrorCode))
+                .andExpect(jsonPath("$.errors[*].title").value(incorrectRequestFormat))
+                .andExpect(jsonPath("$.errors[*].detail").value("vote.user.id.invalid.cpf.format"))
                 .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(userIdField, userIdField)))
-                .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("8635833104386358331043", "8635833104386358331043")));
+                .andExpect(jsonPath("$.errors[*].source.pointer").value(userIdField))
+                .andExpect(jsonPath("$.errors[*].source.parameter").value("8635833104386358331043"));
     }
 
     @Test
@@ -394,6 +423,16 @@ public class VoteControllerTest {
         when(service.chooseVote(userId, agendaUUID, positiveChoice)).thenReturn(vote);
 
         final String bodyContent = Resources.toString(requestChooseVote.getURL(), UTF_8);
+        return mockMvc.perform(post("/cooperative/assembly/vote")
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .content(bodyContent));
+    }
+
+    private ResultActions performSuccessRegisterWithFormattedUserId() throws Exception {
+        Vote vote = new Vote(voteUUID, userId, agenda, session, positiveChoice);
+        when(service.chooseVote(userId, agendaUUID, positiveChoice)).thenReturn(vote);
+
+        final String bodyContent = Resources.toString(requestChooseVoteWithFormattedUserId.getURL(), UTF_8);
         return mockMvc.perform(post("/cooperative/assembly/vote")
                 .contentType(MediaType.APPLICATION_JSON_UTF8)
                 .content(bodyContent));
