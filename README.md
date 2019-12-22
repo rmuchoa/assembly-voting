@@ -153,7 +153,8 @@ Request Response returns saved id in UUID format, and time period for voting:
                 "title": "Mudança de Estatuto"
             },
             "openingTime": "2019-12-21T18:50:29.157",
-            "closingTime": "2019-12-21T19:20:29.157"
+            "closingTime": "2019-12-21T19:20:29.157",
+            "status": "OPEN"
         },
         "choice": "YES"
     }
@@ -177,11 +178,13 @@ Request Response returns counted votes and period for voting on agenda:
 {
     "data": {
         "agenda": "Mudança de Estatuto",
-        "openingTime": "2019-12-21T23:25:18.405",
-        "closingTime": "2019-12-21T23:55:18.405",
+        "status": "APPROVED",
         "totalVotes": 1,
         "affirmativeVotes": 1,
-        "negativeVotes": 0
+        "negativeVotes": 0,
+        "openingTime": "2019-12-21T23:25:18.405",
+        "closingTime": "2019-12-21T23:55:18.405",
+        "session": "CLOSED"
     }
 }
 ```

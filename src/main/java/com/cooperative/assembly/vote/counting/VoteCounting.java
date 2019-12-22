@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 public class VoteCounting {
 
     private String agenda;
-    private LocalDateTime openingTime;
-    private LocalDateTime closingTime;
     private Integer totalVotes;
     private Integer affirmativeVotes;
     private Integer negativeVotes;
+    private LocalDateTime openingTime;
+    private LocalDateTime closingTime;
 
 }

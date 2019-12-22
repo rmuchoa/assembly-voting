@@ -4,15 +4,12 @@ import com.cooperative.assembly.error.ResponseErrorHandler;
 import com.cooperative.assembly.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.voting.session.VotingSession;
 import com.cooperative.assembly.voting.session.canvass.VotingSessionCanvass;
-import com.google.common.io.Resources;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.core.io.Resource;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,7 +22,10 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static com.cooperative.assembly.voting.session.VotingSessionStatus.OPEN;
+import static com.cooperative.assembly.voting.session.VotingSessionStatus.CLOSED;
+import static com.cooperative.assembly.vote.counting.VoteCountingStatus.APPROVED;
+import static com.cooperative.assembly.vote.counting.VoteCountingStatus.REJECTED;
 import static java.time.LocalDateTime.now;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
@@ -146,17 +146,51 @@ public class VoteCountingControllerTest {
     }
 
     @Test
-    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndPeriodTimes() throws Exception {
+    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndPeriodTimesAndApprovedByVotes() throws Exception {
         final ResultActions result = performSuccessProcessing();
 
         result.andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.agenda").value(agendaTitle))
+                .andExpect(jsonPath("$.data.status").value(APPROVED.toString()))
                 .andExpect(jsonPath("$.data.totalVotes").value(totalVotes))
                 .andExpect(jsonPath("$.data.affirmativeVotes").value(affirmativeVotes))
                 .andExpect(jsonPath("$.data.negativeVotes").value(negativeVotes))
+                .andExpect(jsonPath("$.data.session").value(OPEN.toString()))
                 .andExpect(jsonPath("$.data.openingTime").value(openingTime.toString()))
                 .andExpect(jsonPath("$.data.closingTime").value(closingTime.toString()));
+    }
+
+    @Test
+    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndTimePeriodAndRejectedByVotes() throws Exception {
+        final ResultActions result = performSuccessCountingForRejectedAgenda();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.agenda").value(agendaTitle))
+                .andExpect(jsonPath("$.data.status").value(REJECTED.toString()))
+                .andExpect(jsonPath("$.data.totalVotes").value(totalVotes+15))
+                .andExpect(jsonPath("$.data.affirmativeVotes").value(affirmativeVotes))
+                .andExpect(jsonPath("$.data.negativeVotes").value(negativeVotes+15))
+                .andExpect(jsonPath("$.data.session").value(OPEN.toString()))
+                .andExpect(jsonPath("$.data.openingTime").value(openingTime.toString()))
+                .andExpect(jsonPath("$.data.closingTime").value(closingTime.toString()));
+    }
+
+    @Test
+    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndPastTimePeriod() throws Exception {
+        final ResultActions result = performSuccessCountingForPastTimePeriod();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.agenda").value(agendaTitle))
+                .andExpect(jsonPath("$.data.status").value(APPROVED.toString()))
+                .andExpect(jsonPath("$.data.totalVotes").value(totalVotes))
+                .andExpect(jsonPath("$.data.affirmativeVotes").value(affirmativeVotes))
+                .andExpect(jsonPath("$.data.negativeVotes").value(negativeVotes))
+                .andExpect(jsonPath("$.data.session").value(CLOSED.toString()))
+                .andExpect(jsonPath("$.data.openingTime").value(openingTime.minusMinutes(10).toString()))
+                .andExpect(jsonPath("$.data.closingTime").value(closingTime.minusMinutes(10).toString()));
     }
 
     @Test
@@ -240,7 +274,25 @@ public class VoteCountingControllerTest {
     }
 
     private ResultActions performSuccessProcessing() throws Exception {
-        VoteCounting counting = new VoteCounting(agendaTitle, openingTime, closingTime, totalVotes, affirmativeVotes, negativeVotes);
+        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes, affirmativeVotes, negativeVotes, openingTime, closingTime);
+        when(service.getVoteCounting(agendaUUID)).thenReturn(counting);
+
+        return mockMvc.perform(get("/cooperative/assembly/vote/counting")
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .param("agendaId", "2b6f8057-cd5e-4a20-afa0-c04419a8983b"));
+    }
+
+    private ResultActions performSuccessCountingForRejectedAgenda() throws Exception {
+        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes+15, affirmativeVotes, negativeVotes+15, openingTime, closingTime);
+        when(service.getVoteCounting(agendaUUID)).thenReturn(counting);
+
+        return mockMvc.perform(get("/cooperative/assembly/vote/counting")
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .param("agendaId", "2b6f8057-cd5e-4a20-afa0-c04419a8983b"));
+    }
+
+    private ResultActions performSuccessCountingForPastTimePeriod() throws Exception {
+        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes, affirmativeVotes, negativeVotes, openingTime.minusMinutes(10), closingTime.minusMinutes(10));
         when(service.getVoteCounting(agendaUUID)).thenReturn(counting);
 
         return mockMvc.perform(get("/cooperative/assembly/vote/counting")

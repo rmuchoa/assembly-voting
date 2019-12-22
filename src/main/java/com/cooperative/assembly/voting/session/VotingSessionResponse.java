@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.voting.session.VotingSessionStatus.getStatusByTimeRange;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,6 +20,16 @@ public class VotingSessionResponse {
     private VotingAgendaResponse agenda;
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;
+    private VotingSessionStatus status;
+
+    public VotingSessionResponse(final String id, final VotingAgendaResponse agenda,
+                                 final LocalDateTime openingTime, final LocalDateTime closingTime) {
+        this.id = id;
+        this.agenda = agenda;
+        this.openingTime = openingTime;
+        this.closingTime = closingTime;
+        this.status = getStatusByTimeRange(openingTime, closingTime);
+    }
 
     public static ResponseJson<VotingSessionResponse, Void> buildResponse(VotingSession session) {
         VotingAgenda agenda = session.getAgenda();

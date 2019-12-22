@@ -26,6 +26,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.voting.session.VotingSessionStatus.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
 import static java.time.LocalDateTime.now;
@@ -222,7 +223,7 @@ public class VotingSessionControllerTest {
     }
 
     @Test
-    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndPeriodTimes() throws Exception {
+    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndTimePeriod() throws Exception {
         final ResultActions result = performSuccessOpening();
 
         result.andDo(MockMvcResultHandlers.print())
@@ -232,7 +233,38 @@ public class VotingSessionControllerTest {
                 .andExpect(jsonPath("$.data.agenda.id").value(agendaUUID))
                 .andExpect(jsonPath("$.data.agenda.title").value(agendaTitle))
                 .andExpect(jsonPath("$.data.openingTime").value(openingTime.toString()))
-                .andExpect(jsonPath("$.data.closingTime").value(closingTime.toString()));
+                .andExpect(jsonPath("$.data.closingTime").value(closingTime.toString()))
+                .andExpect(jsonPath("$.data.status").value(OPEN.toString()));
+    }
+
+    @Test
+    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndPastTimePeriod() throws Exception {
+        final ResultActions result = performSuccessOpeningPast();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(sessionUUID))
+                .andExpect(jsonPath("$.data.agenda").exists())
+                .andExpect(jsonPath("$.data.agenda.id").value(agendaUUID))
+                .andExpect(jsonPath("$.data.agenda.title").value(agendaTitle))
+                .andExpect(jsonPath("$.data.openingTime").value(openingTime.minusMinutes(10).toString()))
+                .andExpect(jsonPath("$.data.closingTime").value(closingTime.minusMinutes(10).toString()))
+                .andExpect(jsonPath("$.data.status").value(CLOSED.toString()));
+    }
+
+    @Test
+    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndFutureTimePeriod() throws Exception {
+        final ResultActions result = performSuccessOpeningFuture();
+
+        result.andDo(MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(sessionUUID))
+                .andExpect(jsonPath("$.data.agenda").exists())
+                .andExpect(jsonPath("$.data.agenda.id").value(agendaUUID))
+                .andExpect(jsonPath("$.data.agenda.title").value(agendaTitle))
+                .andExpect(jsonPath("$.data.openingTime").value(openingTime.plusMinutes(10).toString()))
+                .andExpect(jsonPath("$.data.closingTime").value(closingTime.plusMinutes(10).toString()))
+                .andExpect(jsonPath("$.data.status").value(WAITING.toString()));
     }
 
     @Test
@@ -395,6 +427,30 @@ public class VotingSessionControllerTest {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
         VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
         VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
+        when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
+
+        final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .content(bodyContent));
+    }
+
+    private ResultActions performSuccessOpeningPast() throws Exception {
+        VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime.minusMinutes(10), closingTime.minusMinutes(10));
+        when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
+
+        final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
+        return mockMvc.perform(post("/cooperative/assembly/voting/session")
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .content(bodyContent));
+    }
+
+    private ResultActions performSuccessOpeningFuture() throws Exception {
+        VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime.plusMinutes(10), closingTime.plusMinutes(10));
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
