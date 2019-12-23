@@ -36,7 +36,7 @@ First we need to crate an agenda for meeting.
 Calling:
 
 ```
-[POST] - 'http://localhost:8080/cooperative/assembly/voting/agenda'
+[POST] - 'http://localhost:8080/cooperative/assembly/v1/voting/agenda'
 (Header) - "Content-Type": "application/json"
 ```
 
@@ -84,7 +84,7 @@ Then we need to open the voting session for the created agenda.
 Calling:
 
 ```
-[POST] - 'http://localhost:8080/cooperative/assembly/voting/session'
+[POST] - 'http://localhost:8080/cooperative/assembly/v1/voting/session'
 (Header) - "Content-Type": "application/json"
 ```
 
@@ -122,7 +122,7 @@ Finally we can vote, as user, on created agenda during the voting session.
 Calling:
 
 ```
-[POST] - 'http://localhost:8080/cooperative/assembly/vote'
+[POST] - 'http://localhost:8080/cooperative/assembly/v1/vote'
 (Header) - "Content-Type": "application/json"
 ```
 
@@ -168,7 +168,7 @@ For sumarize, we can get counting votes on agenda after the voting session.
 Calling:
 
 ```
-[GET] - 'http://localhost:8080/cooperative/assembly/vote/counting?agendaId=46f821fc-3d81-4d39-ac52-7a0a02eba734'
+[GET] - 'http://localhost:8080/cooperative/assembly/v1/vote/counting?agendaId=46f821fc-3d81-4d39-ac52-7a0a02eba734'
 (Header) - "Content-Type": "application/json"
 ```
 
