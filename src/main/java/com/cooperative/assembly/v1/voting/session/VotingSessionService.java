@@ -11,9 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
+import static java.lang.Boolean.FALSE;
 import static java.util.UUID.randomUUID;
+import static java.time.LocalDateTime.now;
 
 @Log4j2
 @Service
@@ -109,21 +113,41 @@ public class VotingSessionService {
      * @return
      */
     protected VotingSessionCanvass createSessionCanvass(final VotingAgenda agenda) {
-        VotingSessionCanvass emptyCanvass = buildNewSessionCanvas(agenda);
+        VotingSessionCanvass emptyCanvass = buildNewSessionCanvass(agenda);
         log.error("Building new voting session canvas", emptyCanvass);
 
         return votingSessionCanvassService.saveCanvass(emptyCanvass);
     }
 
     /**
-     * Build empty session canvass for init voting session
+     * Build empty session canvass for init voting session.
      *
      * @param agenda
      * @return
      */
-    protected VotingSessionCanvass buildNewSessionCanvas(final VotingAgenda agenda) {
+    protected VotingSessionCanvass buildNewSessionCanvass(final VotingAgenda agenda) {
         String id = randomUUID().toString();
-        return new VotingSessionCanvass(id, agenda.getTitle(), 0, 0, 0);
+        return new VotingSessionCanvass(id, agenda.getTitle(), 0, 0, 0, OPENED, FALSE);
+    }
+
+    /**
+     * Load all opened voting sessions canvass that should not be opened yet.
+     *
+     * @return
+     */
+    public List<VotingSession> loadMissClosedSessions() {
+        List<VotingSessionCanvass> openedCanvasses = votingSessionCanvassService.loadOpenedSessionCanvass();
+        return repository.findByCanvassInAndClosingTimeBefore(openedCanvasses, now());
+    }
+
+    /**
+     * Load all current closed voting sessions that was not published yet.
+     *
+     * @return
+     */
+    public List<VotingSession> loadClosedSessionsToPublish() {
+        List<VotingSessionCanvass> closedCanvasses = votingSessionCanvassService.loadClosedSessionCanvassToPublish();
+        return repository.findByCanvassIn(closedCanvasses);
     }
 
 }

@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-import static java.time.LocalDateTime.now;
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.isNoLongerOpenSession;
 
 @Data
 @NoArgsConstructor
@@ -29,12 +29,12 @@ public class VotingSession {
     private LocalDateTime closingTime;
 
     /**
-     * Check if closing time is past before right now to infer this voting session is still open
+     * Check if closing time is past before right now to infer this voting session is still opened
      *
      * @return
      */
     public Boolean isNoLongerOpen() {
-        return now().isAfter(closingTime);
+        return isNoLongerOpenSession(this);
     }
 
 }

@@ -3,6 +3,7 @@ package com.cooperative.assembly.v1.vote.counting;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
 import com.cooperative.assembly.v1.voting.session.VotingSessionService;
+import com.cooperative.assembly.v1.voting.session.VotingSessionStatus;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +15,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.time.LocalDateTime.now;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,6 +42,7 @@ public class VoteCountingServiceTest {
     private Integer negativeVotes;
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;
+    private VotingSessionStatus sessionStatus;
 
     @Before
     public void setUp() {
@@ -52,12 +55,13 @@ public class VoteCountingServiceTest {
         this.negativeVotes = 4;
         this.openingTime = now().withNano(0);
         this.closingTime = openingTime.plusMinutes(1);
+        this.sessionStatus = OPENED;
     }
 
     @Test
     public void shouldLoadVotingSessionForGivenAgendaWhenGettingVoteCounting() {
         VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, sessionStatus, false);
         VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(session);
 
@@ -69,7 +73,7 @@ public class VoteCountingServiceTest {
     @Test
     public void shouldReturnLoadedVoteCountingByAgendaIdWithRespectiveAgendaAndSessionAndSessionCanvassData() {
         VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, sessionStatus, false);
         VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(session);
 
@@ -81,6 +85,7 @@ public class VoteCountingServiceTest {
         assertThat(counting, hasProperty("totalVotes", equalTo(totalVotes)));
         assertThat(counting, hasProperty("affirmativeVotes", equalTo(affirmativeVotes)));
         assertThat(counting, hasProperty("negativeVotes", equalTo(negativeVotes)));
+        assertThat(counting, hasProperty("session", equalTo(sessionStatus)));
     }
 
 }

@@ -11,8 +11,9 @@ Assembly Voting uses a number of open source projects to work properly:
 * [Spring Boot] - Run standalone application with Spring Boot.
 * [Spring Data] - Maps Mongo DB Documents schema with Spring Data.
 * [HttpClient] - Uses Apache HttpClient to request third part API.
+* [Active MQ] - Uses Apache Active MQ as a message broker to comunicate with another aplications by JMS.
 * [Mockito] - Uses Mockito to make better unit tests.
-* [Hamcrest] - Uses Hamcrest to make tests more smarter.
+* [Hamcrest] - Uses Hamcrest to make tests smarter.
 
 ### Installation
 Use gradle to build and install all packages. So use the command bellow to do this:
@@ -189,11 +190,32 @@ Request Response returns counted votes and period for voting on agenda:
 }
 ```
 
+#### Voting Result Publish
+
+For voting session counting results, we have configured:
+
+- a scheduled procedure that identify miss closed voting sessions and ensures those sessions will be closed as soon as the closing time is reached.
+- a scheduled procedure that idenrify closed votings that needs to be published and send json message to publish voting results on message broker.
+
+Send message to queue:
+
+```
+host: tcp://localhost:61616
+queue: assembly-voting-results
+```
+
+Sending Contant Message as string json:
+
+```
+{"title":"Mudança de Estatuto","status":"CLOSED","totalVotes":2,"affirmativeVotes":2,"negativeVotes":0,"agendaId":"60d03a76-5728-4ce3-bf89-4cbe3d1a67ac","sessionId":"91745471-b4f9-42f2-8dea-b6b685b5d302"}
+```
+
 [Java]: <https://www.oracle.com/technetwork/pt/java/javase/downloads/jdk8-downloads-2133151.html>
 [Spring Boot]: <https://start.spring.io/>
 [Swagger]: <https://springfox.github.io/springfox/docs/current/>
 [Lombok]: <https://projectlombok.org/>
 [Spring Data]: <https://spring.io/projects/spring-data>
 [HttpClient]: <https://hc.apache.org/>
+[Active MQ]: <https://activemq.apache.org>
 [Mockito]: <https://site.mockito.org/>
 [Hamcrest]: <http://hamcrest.org/JavaHamcrest/>

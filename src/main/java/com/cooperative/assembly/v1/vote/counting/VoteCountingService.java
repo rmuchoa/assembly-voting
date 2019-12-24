@@ -32,7 +32,7 @@ public class VoteCountingService {
         VotingAgenda agenda = session.getAgenda();
 
         return new VoteCounting(agenda.getTitle(), canvass.getTotalVotes(), canvass.getAffirmativeVotes(),
-                canvass.getNegativeVotes(), session.getOpeningTime(), session.getClosingTime());
+                canvass.getNegativeVotes(), session.getOpeningTime(), session.getClosingTime(), canvass.getStatus());
     }
 
 }
