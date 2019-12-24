@@ -22,8 +22,8 @@ public class VoteCountingResponse {
     private LocalDateTime closingTime;
     private VotingSessionStatus session;
 
-    public VoteCountingResponse(final String agenda, final Integer totalVotes, final Integer affirmativeVotes,
-                                final Integer negativeVotes, final LocalDateTime openingTime, final LocalDateTime closingTime) {
+    public VoteCountingResponse(final String agenda, final Integer totalVotes, final Integer affirmativeVotes, final Integer negativeVotes,
+                                final LocalDateTime openingTime, final LocalDateTime closingTime, final VotingSessionStatus session) {
         this.agenda = agenda;
         this.totalVotes = totalVotes;
         this.affirmativeVotes = affirmativeVotes;
@@ -31,12 +31,12 @@ public class VoteCountingResponse {
         this.status = VoteCountingStatus.getByCountingVotes(affirmativeVotes, negativeVotes);
         this.openingTime = openingTime;
         this.closingTime = closingTime;
-        this.session = VotingSessionStatus.getStatusByTimeRange(openingTime, closingTime);
+        this.session = session;
     }
 
     public static ResponseJson<VoteCountingResponse, Void> buildResponse(final VoteCounting counting) {
-        VoteCountingResponse data = new VoteCountingResponse(counting.getAgenda(), counting.getTotalVotes(),
-                counting.getAffirmativeVotes(), counting.getNegativeVotes(), counting.getOpeningTime(), counting.getClosingTime());
+        VoteCountingResponse data = new VoteCountingResponse(counting.getAgenda(), counting.getTotalVotes(), counting.getAffirmativeVotes(),
+                counting.getNegativeVotes(), counting.getOpeningTime(), counting.getClosingTime(), counting.getSession());
         return new ResponseJson<>(data);
     }
 

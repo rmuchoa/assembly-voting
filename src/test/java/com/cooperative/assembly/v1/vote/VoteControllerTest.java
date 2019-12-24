@@ -25,7 +25,9 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.lang.Boolean.FALSE;
 import static java.util.UUID.randomUUID;
 import static java.time.LocalDateTime.now;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
@@ -87,11 +89,15 @@ public class VoteControllerTest {
     private String voteUUID;
     private String agendaUUID;
     private String sessionUUID;
+    private String canvassUUID;
     private String userId;
     private String agendaTitle;
     private VoteChoice positiveChoice;
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;
+    private Integer totalVotes;
+    private Integer affirmativeVotes;
+    private Integer negativeVotes;
     private String requestFormatErrorCode;
     private String incorrectRequestFormat;
     private String userIdField;
@@ -106,13 +112,18 @@ public class VoteControllerTest {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
         this.voteUUID = randomUUID().toString();
         this.sessionUUID = randomUUID().toString();
+        this.canvassUUID = randomUUID().toString();
         this.userId = "12429593009";
         this.agendaUUID = "2b6f8057-cd5e-4a20-afa0-c04419a8983b";
         this.agendaTitle = "Eleição de Diretoria";
         this.openingTime = now().withNano(0);
         this.closingTime = openingTime.minusMinutes(5);
+        this.totalVotes = 10;
+        this.affirmativeVotes = 6;
+        this.negativeVotes = 4;
         this.agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        this.session = new VotingSession(sessionUUID, agenda, null, openingTime, closingTime);
+        this.canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
+        this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
         this.positiveChoice = VoteChoice.YES;
         this.requestFormatErrorCode = "ERR0100";
         this.incorrectRequestFormat = "Incorrect request format";
@@ -144,6 +155,7 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.data.session.agenda").exists())
                 .andExpect(jsonPath("$.data.session.agenda.id").value(agendaUUID))
                 .andExpect(jsonPath("$.data.session.agenda.title").value(agendaTitle))
+                .andExpect(jsonPath("$.data.session.status").value(OPENED.toString()))
                 .andExpect(jsonPath("$.data.choice").value(positiveChoice.toString()));
     }
 
@@ -170,6 +182,7 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.data.session.agenda").exists())
                 .andExpect(jsonPath("$.data.session.agenda.id").value(agendaUUID))
                 .andExpect(jsonPath("$.data.session.agenda.title").value(agendaTitle))
+                .andExpect(jsonPath("$.data.session.status").value(OPENED.toString()))
                 .andExpect(jsonPath("$.data.choice").value(positiveChoice.toString()));
     }
 

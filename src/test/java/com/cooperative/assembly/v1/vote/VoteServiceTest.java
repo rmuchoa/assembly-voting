@@ -20,6 +20,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.util.Collections.emptyList;
 import static java.util.Arrays.asList;
 import static java.util.UUID.randomUUID;
@@ -84,7 +85,7 @@ public class VoteServiceTest {
         this.closingTime = openingTime.plusMinutes(1);
         this.expectedUser = new User(userId, ABLE_TO_VOTE);
         this.expectedAgenda = new VotingAgenda(agendaId, agendaTitle);
-        this.expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, 0, 0, 0);
+        this.expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, 0, 0, 0, OPENED, false);
         this.expectedSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime, closingTime);
         this.expectedVote = new Vote(voteId, userId, expectedAgenda, expectedSession, VoteChoice.YES);
     }

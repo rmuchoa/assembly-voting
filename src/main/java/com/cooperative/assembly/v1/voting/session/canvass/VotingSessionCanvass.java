@@ -1,5 +1,6 @@
 package com.cooperative.assembly.v1.voting.session.canvass;
 
+import com.cooperative.assembly.v1.voting.session.VotingSessionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,8 @@ public class VotingSessionCanvass {
     private Integer totalVotes;
     private Integer affirmativeVotes;
     private Integer negativeVotes;
+    private VotingSessionStatus status;
+    private Boolean published;
 
     /**
      * Increment an afirmative vote, increasing total and affirmative votes

@@ -37,7 +37,7 @@ public class VoteService {
 
     /**
      * Apply vote choice for user on specific voting agenda.
-     * Save vote for user that is able to vote and session that is still open.
+     * Save vote for user that is able to vote and session that is still opened.
      *
      * @param userId
      * @param agendaId
@@ -164,7 +164,7 @@ public class VoteService {
 
     /**
      * Load voting session by agendaId for apply vote.
-     * Check if voting session is still open before vote.
+     * Check if voting session is still opened before vote.
      * Throw ValidationException when voting session is not longer open.
      *
      * @param agendaId

@@ -3,6 +3,7 @@ package com.cooperative.assembly.v1.vote.counting;
 import com.cooperative.assembly.error.ResponseErrorHandler;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
+import com.cooperative.assembly.v1.voting.session.VotingSessionStatus;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,8 +23,9 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 
-import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPEN;
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.CLOSED;
+import static java.lang.Boolean.FALSE;
 import static java.time.LocalDateTime.now;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
@@ -75,7 +77,7 @@ public class VoteCountingControllerTest {
         this.affirmativeVotes = 22;
         this.negativeVotes = 13;
         this.agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        this.canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        this.canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
         this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
 
         this.requestFormatErrorCode = "ERR0100";
@@ -154,7 +156,7 @@ public class VoteCountingControllerTest {
                 .andExpect(jsonPath("$.data.totalVotes").value(totalVotes))
                 .andExpect(jsonPath("$.data.affirmativeVotes").value(affirmativeVotes))
                 .andExpect(jsonPath("$.data.negativeVotes").value(negativeVotes))
-                .andExpect(jsonPath("$.data.session").value(OPEN.toString()))
+                .andExpect(jsonPath("$.data.session").value(OPENED.toString()))
                 .andExpect(jsonPath("$.data.openingTime").value(openingTime.toString()))
                 .andExpect(jsonPath("$.data.closingTime").value(closingTime.toString()));
     }
@@ -170,7 +172,7 @@ public class VoteCountingControllerTest {
                 .andExpect(jsonPath("$.data.totalVotes").value(totalVotes+15))
                 .andExpect(jsonPath("$.data.affirmativeVotes").value(affirmativeVotes))
                 .andExpect(jsonPath("$.data.negativeVotes").value(negativeVotes+15))
-                .andExpect(jsonPath("$.data.session").value(OPEN.toString()))
+                .andExpect(jsonPath("$.data.session").value(OPENED.toString()))
                 .andExpect(jsonPath("$.data.openingTime").value(openingTime.toString()))
                 .andExpect(jsonPath("$.data.closingTime").value(closingTime.toString()));
     }
@@ -272,7 +274,7 @@ public class VoteCountingControllerTest {
     }
 
     private ResultActions performSuccessProcessing() throws Exception {
-        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes, affirmativeVotes, negativeVotes, openingTime, closingTime);
+        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes, affirmativeVotes, negativeVotes, openingTime, closingTime, OPENED);
         when(service.getVoteCounting(agendaUUID)).thenReturn(counting);
 
         return mockMvc.perform(get("/cooperative/assembly/v1/vote/counting")
@@ -281,7 +283,7 @@ public class VoteCountingControllerTest {
     }
 
     private ResultActions performSuccessCountingForRejectedAgenda() throws Exception {
-        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes+15, affirmativeVotes, negativeVotes+15, openingTime, closingTime);
+        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes+15, affirmativeVotes, negativeVotes+15, openingTime, closingTime, OPENED);
         when(service.getVoteCounting(agendaUUID)).thenReturn(counting);
 
         return mockMvc.perform(get("/cooperative/assembly/v1/vote/counting")
@@ -290,7 +292,7 @@ public class VoteCountingControllerTest {
     }
 
     private ResultActions performSuccessCountingForPastTimePeriod() throws Exception {
-        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes, affirmativeVotes, negativeVotes, openingTime.minusMinutes(10), closingTime.minusMinutes(10));
+        VoteCounting counting = new VoteCounting(agendaTitle, totalVotes, affirmativeVotes, negativeVotes, openingTime.minusMinutes(10), closingTime.minusMinutes(10), CLOSED);
         when(service.getVoteCounting(agendaUUID)).thenReturn(counting);
 
         return mockMvc.perform(get("/cooperative/assembly/v1/vote/counting")
