@@ -16,10 +16,10 @@ public class VoteRequest {
     @CPF(message = "vote.user.id.invalid.cpf.format")
     private String userId;
 
-    @NotBlank(message = "vote.agenda.id.not.empty")
-    @Size(min= 36, max = 36, message = "vote.agenda.id.invalid.size")
-    @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", message = "vote.agenda.id.invalid.uuid.format")
-    private String agendaId;
+    @NotBlank(message = "vote.session.id.not.empty")
+    @Size(min= 36, max = 36, message = "vote.session.id.invalid.size")
+    @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", message = "vote.session.id.invalid.uuid.format")
+    private String sessionId;
 
     @NotNull(message = "vote.choice.not.null")
     private VoteChoice choice;

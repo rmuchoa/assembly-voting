@@ -3,7 +3,6 @@ package com.cooperative.assembly.v1.vote.counting;
 import com.cooperative.assembly.error.ResponseErrorHandler;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
-import com.cooperative.assembly.v1.voting.session.VotingSessionStatus;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,8 +76,8 @@ public class VoteCountingControllerTest {
         this.affirmativeVotes = 22;
         this.negativeVotes = 13;
         this.agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        this.canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
+        this.canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
 
         this.requestFormatErrorCode = "ERR0100";
         this.incorrectRequestFormat = "Incorrect request format";

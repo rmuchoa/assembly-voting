@@ -111,14 +111,15 @@ Request Response returns saved id in UUID format, and time period for voting:
             "title": "Mudança de Estatuto"
         },
         "openingTime": "2019-12-21T18:50:29.157",
-        "closingTime": "2019-12-21T19:20:29.157"
+        "closingTime": "2019-12-21T19:20:29.157",
+        "status": "OPENED"
     }
 }
 ```
 
 #### Register Vote
 
-Finally we can vote, as user, on created agenda during the voting session.
+Finally we can vote, as user, on opened voting session for the created agenda.
 
 Calling:
 
@@ -129,13 +130,13 @@ Calling:
 
 Sending Content Payload in json format, informing:
 - "userId" in CPF format (with or without mask);
-- "agendaId" in UUID format;
+- "sessionId" in UUID format;
 - "choice" that is "YES|NO" (enum);
 
 ```json
 {
 	"userId": "344.472.510-86",
-	"agendaId": "60d03a76-5728-4ce3-bf89-4cbe3d1a67ac",
+	"sessionId": "91745471-b4f9-42f2-8dea-b6b685b5d302",
 	"choice": "YES"
 }
 ```

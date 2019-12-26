@@ -2,7 +2,6 @@ package com.cooperative.assembly.v1.voting.session;
 
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = { VotingSessionTinklerbell.class, VotingSessionService.class, VotingSessionCanvassService.class })
+@ContextConfiguration(classes = { VotingSessionTinklerbell.class, VotingSessionService.class })
 public class VotingSessionTinklerbellTest {
 
     @Autowired
@@ -37,11 +36,8 @@ public class VotingSessionTinklerbellTest {
     @MockBean
     private VotingSessionService service;
 
-    @MockBean
-    private VotingSessionCanvassService votingSessionCanvassService;
-
     @Captor
-    private ArgumentCaptor<VotingSessionCanvass> votingSessionCanvassCaptor;
+    private ArgumentCaptor<VotingSession> votingSessionCaptor;
 
     private String agendaId;
     private String canvassId;
@@ -82,29 +78,34 @@ public class VotingSessionTinklerbellTest {
 
         tinklerbell.ringTheSessionBell();
 
-        verify(votingSessionCanvassService, times(2)).saveCanvass(any(VotingSessionCanvass.class));
+        verify(service, times(2)).saveSession(any(VotingSession.class));
     }
 
     @Test
     public void shouldCloseEachSessionThatHaveBeenLoadedAsMissCloseStatus() {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        List<VotingSession> sessions = asList(buildNewSession(canvass));
-        when(service.loadMissClosedSessions()).thenReturn(sessions);
+        String sessionId = randomUUID().toString();
+        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
+        when(service.loadMissClosedSessions()).thenReturn(asList(session));
 
         tinklerbell.ringTheSessionBell();
 
-        verify(votingSessionCanvassService).saveCanvass(votingSessionCanvassCaptor.capture());
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("id", equalTo(canvass.getId())));
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("title", equalTo(canvass.getTitle())));
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("totalVotes", equalTo(canvass.getTotalVotes())));
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(canvass.getAffirmativeVotes())));
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("negativeVotes", equalTo(canvass.getNegativeVotes())));
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("status", equalTo(CLOSED)));
-        assertThat(votingSessionCanvassCaptor.getValue(), hasProperty("published", is(canvass.getPublished())));
+        verify(service).saveSession(votingSessionCaptor.capture());
+        assertThat(votingSessionCaptor.getValue(), hasProperty("id", equalTo(session.getId())));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("id", equalTo(canvass.getId()))));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("title", equalTo(canvass.getTitle()))));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("totalVotes", equalTo(canvass.getTotalVotes()))));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(canvass.getAffirmativeVotes()))));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("negativeVotes", equalTo(canvass.getNegativeVotes()))));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("openingTime", equalTo(session.getOpeningTime())));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("closingTime", equalTo(session.getClosingTime())));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("status", equalTo(CLOSED)));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("published", equalTo(session.getPublished())));
     }
 
     private VotingSession buildNewSession() {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
         return buildNewSession(canvass);
     }
 
@@ -115,7 +116,7 @@ public class VotingSessionTinklerbellTest {
 
     private VotingSession buildNewSession(final String sessionId, final VotingSessionCanvass canvass) {
         VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        return new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
+        return new VotingSession(sessionId, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
     }
 
 }

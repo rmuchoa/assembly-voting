@@ -20,7 +20,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.v1.vote.VoteChoice.YES;
+import static com.cooperative.assembly.v1.vote.VoteChoice.NO;
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
+import static java.lang.Boolean.FALSE;
 import static java.util.Collections.emptyList;
 import static java.util.Arrays.asList;
 import static java.util.UUID.randomUUID;
@@ -85,40 +88,40 @@ public class VoteServiceTest {
         this.closingTime = openingTime.plusMinutes(1);
         this.expectedUser = new User(userId, ABLE_TO_VOTE);
         this.expectedAgenda = new VotingAgenda(agendaId, agendaTitle);
-        this.expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, 0, 0, 0, OPENED, false);
-        this.expectedSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime, closingTime);
-        this.expectedVote = new Vote(voteId, userId, expectedAgenda, expectedSession, VoteChoice.YES);
+        this.expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, 0, 0, 0);
+        this.expectedSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime, closingTime, OPENED, FALSE);
+        this.expectedVote = new Vote(voteId, userId, expectedSession, YES);
     }
 
     @Test
     public void shouldFindVotesByUserAndAgendaWhenChooseVoteWhileCheckingIfUserAlreadyHasVotedOnGivenAgenda() {
         when(userService.loadUser(userId)).thenReturn(expectedUser);
-        when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
+        when(votingSessionService.loadVoteSession(sessionId)).thenReturn(expectedSession);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.YES);
+        service.chooseVote(userId, sessionId, YES);
 
-        verify(repository, atLeastOnce()).findByUserIdAndAgendaId(userId, agendaId);
+        verify(repository, atLeastOnce()).findByUserIdAndSessionId(userId, sessionId);
     }
 
     @Test
     public void shouldReturnValidationExceptionOnTryingToChooseVoteForUserAndAgendaWhenFoundListedBetweenVotesThatAlreadyHasBeenVoted() {
-        Vote vote = new Vote(voteId, userId, expectedAgenda, expectedSession, VoteChoice.YES);
-        when(repository.findByUserIdAndAgendaId(userId, agendaId)).thenReturn(asList(vote));
+        Vote vote = new Vote(voteId, userId, expectedSession, YES);
+        when(repository.findByUserIdAndSessionId(userId, sessionId)).thenReturn(asList(vote));
 
         assertThatExceptionOfType(ValidationException.class)
-                .isThrownBy(() -> service.chooseVote(userId, agendaId, VoteChoice.YES))
+                .isThrownBy(() -> service.chooseVote(userId, sessionId, YES))
                 .withMessage("Invalid parameter");
     }
 
     @Test
     public void shouldDontReturnAnyExceptionOnTryingToChooseVoteForUserAndAgendaWhenFoundBetweenVotesThatWasNotVotedYet() {
         when(userService.loadUser(userId)).thenReturn(expectedUser);
-        when(repository.findByUserIdAndAgendaId(userId, agendaId)).thenReturn(emptyList());
-        when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
+        when(repository.findByUserIdAndSessionId(userId, sessionId)).thenReturn(emptyList());
+        when(votingSessionService.loadVoteSession(sessionId)).thenReturn(expectedSession);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        assertThatCode(() -> service.chooseVote(userId, agendaId, VoteChoice.YES))
+        assertThatCode(() -> service.chooseVote(userId, sessionId, YES))
                 .doesNotThrowAnyException();
     }
 
@@ -128,7 +131,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.YES);
+        service.chooseVote(userId, agendaId, YES);
 
         verify(userService, only()).loadUser(userId);
     }
@@ -139,7 +142,7 @@ public class VoteServiceTest {
         when(userService.loadUser(userId)).thenReturn(expectedUser);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.YES);
+        service.chooseVote(userId, agendaId, YES);
 
         verify(votingSessionService, atLeastOnce()).loadVoteSession(agendaId);
     }
@@ -150,12 +153,12 @@ public class VoteServiceTest {
         when(userService.loadUser(userId)).thenReturn(expectedUser);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.YES);
+        service.chooseVote(userId, agendaId, YES);
 
         verify(repository, atLeastOnce()).save(voteCaptor.capture());
         assertThat(voteCaptor.getValue(), hasProperty("userId", equalTo(expectedUser.getId())));
-        assertThat(voteCaptor.getValue(), hasProperty("agenda", equalTo(expectedSession.getAgenda())));
-        assertThat(voteCaptor.getValue(), hasProperty("choice", equalTo(VoteChoice.YES)));
+        assertThat(voteCaptor.getValue(), hasProperty("session", equalTo(expectedSession)));
+        assertThat(voteCaptor.getValue(), hasProperty("choice", equalTo(YES)));
     }
 
     @Test
@@ -165,7 +168,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
 
         assertThatExceptionOfType(ValidationException.class)
-                .isThrownBy(() -> service.chooseVote(userId, agendaId, VoteChoice.YES))
+                .isThrownBy(() -> service.chooseVote(userId, agendaId, YES))
                 .withMessage("Invalid parameter");
     }
 
@@ -176,18 +179,18 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        assertThatCode(() -> service.chooseVote(userId, agendaId, VoteChoice.YES))
+        assertThatCode(() -> service.chooseVote(userId, agendaId, YES))
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void shouldReturnValidationExceptionWhenVotingSessionIsNoLongerOpenOnPastTimeRange() {
-        VotingSession expectedSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime.minusMinutes(10), closingTime.minusMinutes(2));
+        VotingSession expectedSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime.minusMinutes(10), closingTime.minusMinutes(2), OPENED, FALSE);
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
         assertThatExceptionOfType(ValidationException.class)
-                .isThrownBy(() -> service.chooseVote(userId, agendaId, VoteChoice.YES))
+                .isThrownBy(() -> service.chooseVote(userId, agendaId, YES))
                 .withMessage("Invalid parameter");
     }
 
@@ -198,7 +201,7 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        assertThatCode(() -> service.chooseVote(userId, agendaId, VoteChoice.YES))
+        assertThatCode(() -> service.chooseVote(userId, agendaId, YES))
                 .doesNotThrowAnyException();
     }
 
@@ -207,13 +210,13 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession, YES);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        Vote vote = service.chooseVote(userId, agendaId, VoteChoice.YES);
+        Vote vote = service.chooseVote(userId, agendaId, YES);
 
         assertThat(vote, hasProperty("id", equalTo(expectedVote.getId())));
-        assertThat(vote, hasProperty("agenda", equalTo(expectedVote.getAgenda())));
+        assertThat(vote, hasProperty("session", equalTo(expectedVote.getSession())));
         assertThat(vote, hasProperty("choice", equalTo(expectedVote.getChoice())));
     }
 
@@ -222,10 +225,10 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession, YES);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.YES);
+        service.chooseVote(userId, agendaId, YES);
 
         verify(votingSessionCanvassService, only()).saveCanvass(any(VotingSessionCanvass.class));
     }
@@ -235,10 +238,10 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession, YES);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.YES);
+        service.chooseVote(userId, agendaId, YES);
 
         verify(votingSessionCanvassService, only()).saveCanvass(canvassCaptor.capture());
         assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(agendaTitle)));
@@ -252,10 +255,10 @@ public class VoteServiceTest {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
         when(userService.loadUser(userId)).thenReturn(expectedUser);
 
-        Vote expectedVote = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.NO);
+        Vote expectedVote = new Vote(voteId, userId, expectedSession, NO);
         when(repository.save(any(Vote.class))).thenReturn(expectedVote);
 
-        service.chooseVote(userId, agendaId, VoteChoice.NO);
+        service.chooseVote(userId, agendaId, NO);
 
         verify(votingSessionCanvassService, only()).saveCanvass(canvassCaptor.capture());
         assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(agendaTitle)));
@@ -268,12 +271,12 @@ public class VoteServiceTest {
     public void shouldIncrementMultipleChoicesOnVotingSessionCanvassWhenChoosingVoteForSessionAgenda() {
         when(votingSessionService.loadVoteSession(agendaId)).thenReturn(expectedSession);
 
-        Vote vote1 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
-        Vote vote2 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.NO);
-        Vote vote3 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
-        Vote vote4 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
-        Vote vote5 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.YES);
-        Vote vote6 = new Vote(voteId, userId, expectedSession.getAgenda(), expectedSession, VoteChoice.NO);
+        Vote vote1 = new Vote(voteId, userId, expectedSession, YES);
+        Vote vote2 = new Vote(voteId, userId, expectedSession, NO);
+        Vote vote3 = new Vote(voteId, userId, expectedSession, YES);
+        Vote vote4 = new Vote(voteId, userId, expectedSession, YES);
+        Vote vote5 = new Vote(voteId, userId, expectedSession, YES);
+        Vote vote6 = new Vote(voteId, userId, expectedSession, NO);
 
         service.applyVoteOnSessionCanvass(agendaId, vote1);
         service.applyVoteOnSessionCanvass(agendaId, vote2);

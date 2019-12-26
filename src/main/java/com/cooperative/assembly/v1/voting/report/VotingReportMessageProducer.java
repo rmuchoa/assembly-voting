@@ -2,8 +2,6 @@ package com.cooperative.assembly.v1.voting.report;
 
 import com.cooperative.assembly.v1.voting.session.VotingSession;
 import com.cooperative.assembly.v1.voting.session.VotingSessionService;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,15 +25,13 @@ public class VotingReportMessageProducer {
     private JmsTemplate jmsTemplate;
     private VotingReportMapper reportMapper;
     private VotingSessionService votingSessionService;
-    private VotingSessionCanvassService votingSessionCanvassService;
 
     @Autowired
     public VotingReportMessageProducer(final JmsTemplate jmsTemplate, final VotingReportMapper reportMapper,
-                                       final VotingSessionService votingSessionService, final VotingSessionCanvassService votingSessionCanvassService) {
+                                       final VotingSessionService votingSessionService) {
         this.jmsTemplate = jmsTemplate;
         this.reportMapper = reportMapper;
         this.votingSessionService = votingSessionService;
-        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     @Scheduled(cron = "0 */5 * * * *")
@@ -69,10 +65,9 @@ public class VotingReportMessageProducer {
     }
 
     private void updatePublishedSessionCanvass(final VotingSession session) {
-        VotingSessionCanvass canvass = session.getCanvass();
-        canvass.setPublished(TRUE);
-        log.debug("Marking as published canvass from session: ", session.getId());
-        votingSessionCanvassService.saveCanvass(canvass);
+        session.setPublished(TRUE);
+        log.debug("Marking session as published: ", session.getId());
+        votingSessionService.saveSession(session);
     }
 
 }

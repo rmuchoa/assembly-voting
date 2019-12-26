@@ -25,8 +25,7 @@ public class VotingSessionResponse {
         VotingAgenda agenda = session.getAgenda();
         VotingAgendaResponse agendaResponse = new VotingAgendaResponse(agenda.getId(), agenda.getTitle());
 
-        VotingSessionCanvass canvass = session.getCanvass();
-        VotingSessionResponse data = new VotingSessionResponse(session.getId(), agendaResponse, session.getOpeningTime(), session.getClosingTime(), canvass.getStatus());
+        VotingSessionResponse data = new VotingSessionResponse(session.getId(), agendaResponse, session.getOpeningTime(), session.getClosingTime(), session.getStatus());
         return new ResponseJson<>(data);
     }
 

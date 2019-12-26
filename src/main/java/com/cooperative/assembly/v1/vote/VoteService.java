@@ -40,14 +40,14 @@ public class VoteService {
      * Save vote for user that is able to vote and session that is still opened.
      *
      * @param userId
-     * @param agendaId
+     * @param sessionId
      * @param choice
      * @return
      */
-    public Vote chooseVote(final String userId, final String agendaId, final VoteChoice choice) {
-        Vote vote = saveChoice(userId, agendaId, choice);
+    public Vote chooseVote(final String userId, final String sessionId, final VoteChoice choice) {
+        Vote vote = saveChoice(userId, sessionId, choice);
 
-        applyVoteOnSessionCanvass(agendaId, vote);
+        applyVoteOnSessionCanvass(sessionId, vote);
 
         return vote;
     }
@@ -56,12 +56,12 @@ public class VoteService {
      * Build and save valid vote by agenda with user choice.
      *
      * @param userId
-     * @param agendaId
+     * @param sessionId
      * @param choice
      * @return
      */
-    protected Vote saveChoice(final String userId, final String agendaId, final VoteChoice choice) {
-        Vote vote = validateAndBuildVote(userId, agendaId);
+    protected Vote saveChoice(final String userId, final String sessionId, final VoteChoice choice) {
+        Vote vote = validateAndBuildVote(userId, sessionId);
         vote.setChoice(choice);
 
         log.debug("Saving vote made by user");
@@ -72,31 +72,31 @@ public class VoteService {
      * Validate and build vote object by agenda to save user choice.
      *
      * @param userId
-     * @param agendaId
+     * @param sessionId
      * @return
      */
-    protected Vote validateAndBuildVote(final String userId, final String agendaId) {
-        if (hasUserAlreadyVotedOnAgenda(userId, agendaId)) {
-            log.error("Found previous vote on this agenda by the same user");
-            throw new ValidationException("vote.already.exists", "userId|agendaId", format("%s|%s", userId, agendaId));
+    protected Vote validateAndBuildVote(final String userId, final String sessionId) {
+        if (hasUserAlreadyVotedOnSession(userId, sessionId)) {
+            log.error("Found previous vote on this session by the same user");
+            throw new ValidationException("vote.already.exists", "userId|sessionId", format("%s|%s", userId, sessionId));
         }
 
         User user = loadUser(userId);
-        VotingSession session = loadVotingSession(agendaId);
+        VotingSession session = loadVotingSession(sessionId);
 
         String id = randomUUID().toString();
-        return new Vote(id, user.getId(), session.getAgenda(), session);
+        return new Vote(id, user.getId(), session);
     }
 
     /**
      * List all votes registered for specific userId and agendaId relationship.
      *
      * @param userId
-     * @param agendaId
+     * @param sessionId
      * @return
      */
-    private Boolean hasUserAlreadyVotedOnAgenda(final String userId, final String agendaId) {
-        List<Vote> votes = repository.findByUserIdAndAgendaId(userId, agendaId);
+    private Boolean hasUserAlreadyVotedOnSession(final String userId, final String sessionId) {
+        List<Vote> votes = repository.findByUserIdAndSessionId(userId, sessionId);
         return !isEmpty(votes);
     }
 
@@ -139,6 +139,7 @@ public class VoteService {
     protected void applyVoteOnSessionCanvass(final String agendaId, final Vote vote) {
         VotingSession session = vote.getSession();
         VotingSessionCanvass canvass = session.getCanvass();
+        // TODO verificar Sincronyzed
         applyChoice(canvass, vote);
 
         log.debug("Save totalized voting session canvass", canvass);
@@ -167,14 +168,14 @@ public class VoteService {
      * Check if voting session is still opened before vote.
      * Throw ValidationException when voting session is not longer open.
      *
-     * @param agendaId
+     * @param sessionId
      * @return
      */
-    private VotingSession loadVotingSession(final String agendaId) {
-        VotingSession session = votingSessionService.loadVoteSession(agendaId);
+    private VotingSession loadVotingSession(final String sessionId) {
+        VotingSession session = votingSessionService.loadVoteSession(sessionId);
         if (session != null && session.isNoLongerOpen()) {
-            log.debug("Found agenda session is closed for voting now", session);
-            throw new ValidationException("voting.session.no.longer.open", "agendaId", agendaId);
+            log.debug("Found session is closed for voting now", session);
+            throw new ValidationException("voting.session.no.longer.open", "sessionId", sessionId);
         }
 
         return session;

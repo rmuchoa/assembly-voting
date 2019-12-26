@@ -7,7 +7,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -29,11 +28,10 @@ public class VoteController {
     @PostMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE,
             consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseBody
-    @Transactional
     public ResponseEntity<ResponseJson<VoteResponse, Void>> register(
             @Valid @RequestBody VoteRequest request) {
 
-        Vote vote = service.chooseVote(request.getUserId(), request.getAgendaId(), request.getChoice());
+        Vote vote = service.chooseVote(request.getUserId(), request.getSessionId(), request.getChoice());
         log.debug("Saved vote choice from user to voting agenda: ", vote);
 
         return ResponseEntity.ok().body(VoteResponse.buildResponse(vote));

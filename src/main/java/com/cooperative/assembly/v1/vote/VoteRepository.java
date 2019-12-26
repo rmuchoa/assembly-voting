@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface VoteRepository extends MongoRepository<Vote, String> {
 
-    public List<Vote> findByUserIdAndAgendaId(final String userId, final String agendaId);
+    List<Vote> findByUserIdAndSessionId(final String userId, final String sessionId);
 
 }

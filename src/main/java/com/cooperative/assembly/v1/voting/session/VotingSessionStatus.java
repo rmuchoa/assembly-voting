@@ -7,20 +7,7 @@ import static java.time.LocalDateTime.now;
 
 public enum VotingSessionStatus {
     OPENED,
-    CLOSED,
-    WAITING;
-
-    public static VotingSessionStatus getStatusBySessionPeriod(final VotingSession session) {
-        if (now().isBefore(session.getOpeningTime())) {
-            return WAITING;
-        }
-
-        if (isClosed(session)) {
-            return CLOSED;
-        }
-
-        return OPENED;
-    }
+    CLOSED;
 
     /**
      * Check if session is no longer opened by status or time period.
@@ -29,18 +16,17 @@ public enum VotingSessionStatus {
      * @return
      */
     public static Boolean isNoLongerOpenSession(final VotingSession session) {
-        VotingSessionCanvass canvass = session.getCanvass();
-        return isNoLongerOpenSession(canvass) ? TRUE : isClosed(session);
+        return isNoLongerOpen(session) ? TRUE : isClosed(session);
     }
 
     /**
-     * Check if session canvas is no longer opened by status.
+     * Check if session is no longer opened by status.
      *
-     * @param canvass
+     * @param session
      * @return
      */
-    public static Boolean isNoLongerOpenSession(final VotingSessionCanvass canvass) {
-        VotingSessionStatus status = canvass.getStatus();
+    public static Boolean isNoLongerOpen(final VotingSession session) {
+        VotingSessionStatus status = session.getStatus();
         return CLOSED.equals(status);
     }
 

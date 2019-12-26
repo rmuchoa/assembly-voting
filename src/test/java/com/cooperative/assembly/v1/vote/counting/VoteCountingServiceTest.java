@@ -16,6 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.time.LocalDateTime;
 
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
+import static java.lang.Boolean.FALSE;
 import static java.time.LocalDateTime.now;
 import static java.util.UUID.randomUUID;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -61,21 +62,21 @@ public class VoteCountingServiceTest {
     @Test
     public void shouldLoadVotingSessionForGivenAgendaWhenGettingVoteCounting() {
         VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, sessionStatus, false);
-        VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
-        when(votingSessionService.loadVoteSession(agendaId)).thenReturn(session);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime, sessionStatus, FALSE);
+        when(votingSessionService.loadVoteSessionByAgenda(agendaId)).thenReturn(session);
 
         service.getVoteCounting(agendaId);
 
-        verify(votingSessionService, only()).loadVoteSession(agendaId);
+        verify(votingSessionService, only()).loadVoteSessionByAgenda(agendaId);
     }
 
     @Test
     public void shouldReturnLoadedVoteCountingByAgendaIdWithRespectiveAgendaAndSessionAndSessionCanvassData() {
         VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, sessionStatus, false);
-        VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
-        when(votingSessionService.loadVoteSession(agendaId)).thenReturn(session);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime, sessionStatus, FALSE);
+        when(votingSessionService.loadVoteSessionByAgenda(agendaId)).thenReturn(session);
 
         VoteCounting counting = service.getVoteCounting(agendaId);
 
