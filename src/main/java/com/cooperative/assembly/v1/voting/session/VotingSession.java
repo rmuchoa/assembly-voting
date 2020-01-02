@@ -23,8 +23,6 @@ public class VotingSession {
     private String id;
     @DBRef
     private VotingAgenda agenda;
-    @DBRef
-    private VotingSessionCanvass canvass;
 
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;

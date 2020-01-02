@@ -8,4 +8,6 @@ public interface VoteRepository extends MongoRepository<Vote, String> {
 
     List<Vote> findByUserIdAndSessionId(final String userId, final String sessionId);
 
+    List<Vote> findBySessionId(final String sessionId);
+
 }

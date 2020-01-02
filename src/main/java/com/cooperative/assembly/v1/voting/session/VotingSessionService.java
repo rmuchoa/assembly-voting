@@ -4,8 +4,6 @@ import com.cooperative.assembly.error.exception.NotFoundReferenceException;
 import com.cooperative.assembly.error.exception.ValidationException;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgendaService;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,13 +26,11 @@ public class VotingSessionService {
 
     private VotingSessionRepository repository;
     private VotingAgendaService votingAgendaService;
-    private VotingSessionCanvassService votingSessionCanvassService;
 
     @Autowired
-    public VotingSessionService(final VotingSessionRepository repository, final VotingAgendaService votingAgendaService, final VotingSessionCanvassService votingSessionCanvassService) {
+    public VotingSessionService(final VotingSessionRepository repository, final VotingAgendaService votingAgendaService) {
         this.repository = repository;
         this.votingAgendaService = votingAgendaService;
-        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     /**
@@ -74,6 +70,23 @@ public class VotingSessionService {
     }
 
     /**
+     * Open session for related agenda defining time period for voting by deadline in minutes.
+     *
+     * @param agenda
+     * @param deadlineMinutes
+     * @return
+     */
+    protected VotingSession openSessionFor(final VotingAgenda agenda, Long deadlineMinutes) {
+        String id = randomUUID().toString();
+        LocalDateTime openingTime = LocalDateTime.now();
+        LocalDateTime closingTime = LocalDateTime.now().plusMinutes(deadlineMinutes);
+
+        VotingSession votingSession = new VotingSession(id, agenda, openingTime, closingTime, OPENED, FALSE);
+        log.debug("Save voting session to start voting");
+        return repository.save(votingSession);
+    }
+
+    /**
      * Load voting session by id.
      * Throw NotFoundReferenceException.class when voting session can not be found.
      *
@@ -105,49 +118,6 @@ public class VotingSessionService {
         }
 
         return session.get();
-    }
-
-    /**
-     * Open session for related agenda defining time period for voting by deadline in minutes.
-     *
-     * @param agenda
-     * @param deadlineMinutes
-     * @return
-     */
-    protected VotingSession openSessionFor(final VotingAgenda agenda, Long deadlineMinutes) {
-        String id = randomUUID().toString();
-        LocalDateTime openingTime = LocalDateTime.now();
-        LocalDateTime closingTime = LocalDateTime.now().plusMinutes(deadlineMinutes);
-
-        VotingSessionCanvass canvass = createSessionCanvass(agenda);
-
-        VotingSession votingSession = new VotingSession(id, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
-        log.debug("Save voting session to start voting");
-        return repository.save(votingSession);
-    }
-
-    /**
-     * Build and save new session canvass for voting session.
-     *
-     * @param agenda
-     * @return
-     */
-    protected VotingSessionCanvass createSessionCanvass(final VotingAgenda agenda) {
-        VotingSessionCanvass emptyCanvass = buildNewSessionCanvass(agenda);
-        log.error("Building new voting session canvas", emptyCanvass);
-
-        return votingSessionCanvassService.saveCanvass(emptyCanvass);
-    }
-
-    /**
-     * Build empty session canvass for init voting session.
-     *
-     * @param agenda
-     * @return
-     */
-    protected VotingSessionCanvass buildNewSessionCanvass(final VotingAgenda agenda) {
-        String id = randomUUID().toString();
-        return new VotingSessionCanvass(id, agenda.getTitle(), 0, 0, 0);
     }
 
     /**

@@ -7,7 +7,6 @@ import com.cooperative.assembly.error.exception.ValidationException;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 import com.cooperative.assembly.v1.voting.session.VotingSessionService;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,14 +24,12 @@ public class VoteService {
     private VoteRepository repository;
     private UserService userService;
     private VotingSessionService votingSessionService;
-    private VotingSessionCanvassService votingSessionCanvassService;
 
     @Autowired
-    public VoteService(final VoteRepository repository, final UserService userService, final VotingSessionService votingSessionService, final VotingSessionCanvassService votingSessionCanvassService) {
+    public VoteService(final VoteRepository repository, final UserService userService, final VotingSessionService votingSessionService) {
         this.repository = repository;
         this.userService = userService;
         this.votingSessionService = votingSessionService;
-        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     /**
@@ -45,22 +42,6 @@ public class VoteService {
      * @return
      */
     public Vote chooseVote(final String userId, final String sessionId, final VoteChoice choice) {
-        Vote vote = saveChoice(userId, sessionId, choice);
-
-        applyVoteOnSessionCanvass(sessionId, vote);
-
-        return vote;
-    }
-
-    /**
-     * Build and save valid vote by agenda with user choice.
-     *
-     * @param userId
-     * @param sessionId
-     * @param choice
-     * @return
-     */
-    protected Vote saveChoice(final String userId, final String sessionId, final VoteChoice choice) {
         Vote vote = validateAndBuildVote(userId, sessionId);
         vote.setChoice(choice);
 
@@ -130,23 +111,6 @@ public class VoteService {
     }
 
     /**
-     * Load agenda session and apply vote on session canvass by affirmative ou negative choice.
-     * Updade session canvass with current totalized canvass.
-     *
-     * @param agendaId
-     * @param vote
-     */
-    protected void applyVoteOnSessionCanvass(final String agendaId, final Vote vote) {
-        VotingSession session = vote.getSession();
-        VotingSessionCanvass canvass = session.getCanvass();
-        // TODO verificar Sincronyzed
-        applyChoice(canvass, vote);
-
-        log.debug("Save totalized voting session canvass", canvass);
-        votingSessionCanvassService.saveCanvass(canvass);
-    }
-
-    /**
      * Apply vote choice on session canvass by affirmative or negative choice.
      *
      * @param canvass
@@ -179,6 +143,16 @@ public class VoteService {
         }
 
         return session;
+    }
+
+    /**
+     * List all votes from a voting session.
+     *
+     * @param session
+     * @return
+     */
+    public List<Vote> getSessionVotes(VotingSession session) {
+        return repository.findBySessionId(session.getId());
     }
 
 }

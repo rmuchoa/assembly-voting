@@ -1,7 +1,13 @@
 package com.cooperative.assembly.v1.voting.report;
 
+import com.cooperative.assembly.v1.vote.Vote;
+import com.cooperative.assembly.v1.vote.VoteChoice;
+import com.cooperative.assembly.v1.vote.VoteService;
+import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
 import com.cooperative.assembly.v1.voting.session.VotingSessionService;
+import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
+import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.lang.Boolean.TRUE;
+import static java.util.UUID.randomUUID;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Log4j2
@@ -25,13 +32,15 @@ public class VotingReportMessageProducer {
     private JmsTemplate jmsTemplate;
     private VotingReportMapper reportMapper;
     private VotingSessionService votingSessionService;
+    private VotingSessionCanvassService votingSessionCanvassService;
 
     @Autowired
     public VotingReportMessageProducer(final JmsTemplate jmsTemplate, final VotingReportMapper reportMapper,
-                                       final VotingSessionService votingSessionService) {
+                                       final VotingSessionService votingSessionService, final VotingSessionCanvassService votingSessionCanvassService) {
         this.jmsTemplate = jmsTemplate;
         this.reportMapper = reportMapper;
         this.votingSessionService = votingSessionService;
+        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     @Scheduled(cron = "0 */5 * * * *")
@@ -51,7 +60,8 @@ public class VotingReportMessageProducer {
     }
 
     protected void buildReportToSendMessage(final VotingSession session) {
-        VotingReport report = VotingReport.buildReport(session);
+        VotingSessionCanvass canvass = votingSessionCanvassService.reloadVotingSessionCanvass(session);
+        VotingReport report = VotingReport.buildReport(session, canvass);
         Optional<String> json = reportMapper.toJson(report);
         if (json.isPresent()) {
             sendReportMessage(json.get());
