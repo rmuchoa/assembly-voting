@@ -1,5 +1,6 @@
 package com.cooperative.assembly.v1.voting.agenda;
 
+import com.cooperative.assembly.builder.VotingAgendaBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -56,8 +57,8 @@ public class VotingAgendaServiceTest {
     public void shouldReturnSavedVotingAgendaAsIs() {
         String title = "agenda-title-1";
         String id = randomUUID().toString();
-        VotingAgenda expectedVotingAgenda = new VotingAgenda(id, title);
-        when(repository.save(any(VotingAgenda.class))).thenReturn(expectedVotingAgenda);
+        VotingAgenda expectedAgenda = buildAgenda(id, title);
+        when(repository.save(any(VotingAgenda.class))).thenReturn(expectedAgenda);
 
         VotingAgenda votingAgenda = service.create(title);
 
@@ -68,7 +69,7 @@ public class VotingAgendaServiceTest {
     @Test
     public void shouldFindAgendaByIdWhenLoadingAgendaByReceivedAgendaIdReference() {
         String agendaId = randomUUID().toString();
-        VotingAgenda expectedAgenda = new VotingAgenda(agendaId, "agenda-title-1");
+        VotingAgenda expectedAgenda = buildAgenda(agendaId);
         when(repository.findById(agendaId)).thenReturn(of(expectedAgenda));
 
         service.loadAgenda(agendaId);
@@ -79,13 +80,24 @@ public class VotingAgendaServiceTest {
     @Test
     public void shouldReturnFoundAgendaByIdGotOptionally() {
         String agendaId = randomUUID().toString();
-        VotingAgenda expectedAgenda = new VotingAgenda(agendaId, "agenda-title-1");
+        VotingAgenda expectedAgenda = buildAgenda(agendaId);
         when(repository.findById(agendaId)).thenReturn(of(expectedAgenda));
 
         Optional<VotingAgenda> agenda = service.loadAgenda(agendaId);
 
         assertThat(agenda.isPresent(), is(TRUE));
         assertThat(agenda.get(), hasProperty("id", equalTo(expectedAgenda.getId())));
+    }
+
+    private VotingAgenda buildAgenda(String agendaId) {
+        return buildAgenda(agendaId, "agenda-title-1");
+    }
+
+    private VotingAgenda buildAgenda(String agendaId, String agendaTitle) {
+        return VotingAgendaBuilder.get()
+                .with(VotingAgenda::setId, agendaId)
+                .with(VotingAgenda::setTitle, agendaTitle)
+                .build();
     }
 
 }

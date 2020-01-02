@@ -1,6 +1,7 @@
 package com.cooperative.assembly.v1.voting.session.canvass;
 
-import org.junit.Before;
+import com.cooperative.assembly.builder.*;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,24 +24,9 @@ public class VotingSessionCanvassServiceTest {
     @MockBean
     private VotingSessionCanvassRepository repository;
 
-    private String canvassId;
-    private String title;
-    private Integer totalVotes;
-    private Integer affirmativeVotes;
-    private Integer negativeVotes;
-
-    @Before
-    public void setUp() {
-        this.canvassId = randomUUID().toString();
-        this.title = "agenda-title-1";
-        this.totalVotes = 0;
-        this.affirmativeVotes = 0;
-        this.negativeVotes = 0;
-    }
-
     @Test
     public void shouldSaveVotingSessionCanvassWhenUpdateCanvass() {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, title, totalVotes, affirmativeVotes, negativeVotes);
+        VotingSessionCanvass canvass = buildCanvass();
 
         service.saveCanvass(canvass);
 
@@ -49,7 +35,12 @@ public class VotingSessionCanvassServiceTest {
 
     @Test
     public void shouldReturnSavedVotingSessionCanvassWhenUpdateCanvass() {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, title, totalVotes, affirmativeVotes, negativeVotes);
+        String canvassId = randomUUID().toString();
+        String title = "agenda-title-1";
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass canvass = buildCanvass(canvassId, title, totalVotes, affirmativeVotes, negativeVotes);
         when(repository.save(canvass)).thenReturn(canvass);
 
         VotingSessionCanvass savedCanvass = service.saveCanvass(canvass);
@@ -59,6 +50,20 @@ public class VotingSessionCanvassServiceTest {
         assertThat(savedCanvass, hasProperty("totalVotes", equalTo(totalVotes)));
         assertThat(savedCanvass, hasProperty("affirmativeVotes", equalTo(affirmativeVotes)));
         assertThat(savedCanvass, hasProperty("negativeVotes", equalTo(negativeVotes)));
+    }
+
+    private VotingSessionCanvass buildCanvass() {
+        return buildCanvass(randomUUID().toString(), "agenda-title-1", 10, 8, 2);
+    }
+
+    private VotingSessionCanvass buildCanvass(String canvassId, String title, Integer totalVotes, Integer affirmativeVotes, Integer negativeVotes) {
+        return VotingSessionCanvassBuilder.get()
+                .with(VotingSessionCanvass::setId, canvassId)
+                .with(VotingSessionCanvass::setTitle, title)
+                .with(VotingSessionCanvass::setTotalVotes, totalVotes)
+                .with(VotingSessionCanvass::setAffirmativeVotes, affirmativeVotes)
+                .with(VotingSessionCanvass::setNegativeVotes, negativeVotes)
+                .build();
     }
 
 }
