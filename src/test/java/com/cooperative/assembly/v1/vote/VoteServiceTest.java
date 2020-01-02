@@ -24,7 +24,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.time.LocalDateTime;
 
 import static com.cooperative.assembly.v1.vote.VoteChoice.YES;
-import static com.cooperative.assembly.v1.vote.VoteChoice.NO;
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.lang.Boolean.FALSE;
 import static java.util.Collections.emptyList;
@@ -265,104 +264,6 @@ public class VoteServiceTest {
         assertThat(vote, hasProperty("choice", equalTo(expectedVote.getChoice())));
     }
 
-    @Test
-    public void shouldUpdateTotalizedVotingSessionCanvassWhenChoosingVoteForSessionAgenda() {
-        String userId = "1234567890";
-        User expectedUser = buildUser(userId);
-        when(userService.loadUser(userId)).thenReturn(expectedUser);
-
-        String sessionId = randomUUID().toString();
-        VotingSession expectedSession = buildSession(sessionId);
-        when(votingSessionService.loadVoteSession(sessionId)).thenReturn(expectedSession);
-
-        String voteId = randomUUID().toString();
-        Vote expectedVote = buildVoteYes(voteId, userId, expectedSession);
-        when(repository.save(any(Vote.class))).thenReturn(expectedVote);
-
-        service.chooseVote(userId, sessionId, YES);
-
-        verify(votingSessionCanvassService, only()).saveCanvass(any(VotingSessionCanvass.class));
-    }
-
-    @Test
-    public void shouldIncrementAffirmativeChoiceOnVotingSessionCanvassWhenChoosingVoteForSessionAgenda() {
-        String userId = "1234567890";
-        User expectedUser = buildUser(userId);
-        when(userService.loadUser(userId)).thenReturn(expectedUser);
-
-        String sessionId = randomUUID().toString();
-        VotingAgenda agenda = buildAgenda();
-        VotingSessionCanvass canvass = buildEmptyCanvass();
-        VotingSession expectedSession = buildSession(sessionId, agenda, canvass);
-        when(votingSessionService.loadVoteSession(sessionId)).thenReturn(expectedSession);
-
-        String voteId = randomUUID().toString();
-        Vote expectedVote = buildVoteYes(voteId, userId, expectedSession);
-        when(repository.save(any(Vote.class))).thenReturn(expectedVote);
-
-        service.chooseVote(userId, sessionId, YES);
-
-        verify(votingSessionCanvassService, only()).saveCanvass(canvassCaptor.capture());
-        assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(agenda.getTitle())));
-        assertThat(canvassCaptor.getValue(), hasProperty("totalVotes", equalTo(1)));
-        assertThat(canvassCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(1)));
-        assertThat(canvassCaptor.getValue(), hasProperty("negativeVotes", equalTo(0)));
-    }
-
-    @Test
-    public void shouldIncrementNegativeChoiceOnVotingSessionCanvassWhenChoosingVoteForSessionAgenda() {
-        String userId = "1234567890";
-        User expectedUser = buildUser(userId);
-        when(userService.loadUser(userId)).thenReturn(expectedUser);
-
-        String sessionId = randomUUID().toString();
-        VotingAgenda agenda = buildAgenda();
-        VotingSessionCanvass canvass = buildEmptyCanvass();
-        VotingSession expectedSession = buildSession(sessionId, agenda, canvass);
-        when(votingSessionService.loadVoteSession(sessionId)).thenReturn(expectedSession);
-
-        String voteId = randomUUID().toString();
-        Vote expectedVote = buildVoteNo(voteId, userId, expectedSession);
-        when(repository.save(any(Vote.class))).thenReturn(expectedVote);
-
-        service.chooseVote(userId, sessionId, NO);
-
-        verify(votingSessionCanvassService, only()).saveCanvass(canvassCaptor.capture());
-        assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(agenda.getTitle())));
-        assertThat(canvassCaptor.getValue(), hasProperty("totalVotes", equalTo(1)));
-        assertThat(canvassCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(0)));
-        assertThat(canvassCaptor.getValue(), hasProperty("negativeVotes", equalTo(1)));
-    }
-
-    @Test
-    public void shouldIncrementMultipleChoicesOnVotingSessionCanvassWhenChoosingVoteForSessionAgenda() {
-        String sessionId = randomUUID().toString();
-        VotingAgenda agenda = buildAgenda();
-        VotingSessionCanvass canvass = buildEmptyCanvass();
-        VotingSession expectedSession = buildSession(sessionId, agenda, canvass);
-        when(votingSessionService.loadVoteSession(sessionId)).thenReturn(expectedSession);
-
-        Vote vote1 = buildVoteYes(expectedSession);
-        Vote vote2 = buildVoteNo(expectedSession);
-        Vote vote3 = buildVoteYes(expectedSession);
-        Vote vote4 = buildVoteYes(expectedSession);
-        Vote vote5 = buildVoteYes(expectedSession);
-        Vote vote6 = buildVoteNo(expectedSession);
-
-        service.applyVoteOnSessionCanvass(sessionId, vote1);
-        service.applyVoteOnSessionCanvass(sessionId, vote2);
-        service.applyVoteOnSessionCanvass(sessionId, vote3);
-        service.applyVoteOnSessionCanvass(sessionId, vote4);
-        service.applyVoteOnSessionCanvass(sessionId, vote5);
-        service.applyVoteOnSessionCanvass(sessionId, vote6);
-
-        verify(votingSessionCanvassService, times(6)).saveCanvass(canvassCaptor.capture());
-        assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(agenda.getTitle())));
-        assertThat(canvassCaptor.getValue(), hasProperty("totalVotes", equalTo(6)));
-        assertThat(canvassCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(4)));
-        assertThat(canvassCaptor.getValue(), hasProperty("negativeVotes", equalTo(2)));
-    }
-
     private User buildUserAble(String userId) {
         return buildUser(userId, ABLE_TO_VOTE);
     }
@@ -397,57 +298,20 @@ public class VoteServiceTest {
                 .build();
     }
 
-    private VotingSessionCanvass buildCanvass() {
-        return buildCanvass(randomUUID().toString(), "agenda-title-1", 10, 8, 2);
-    }
-
-    private VotingSessionCanvass buildEmptyCanvass() {
-        return buildCanvass(randomUUID().toString(), "agenda-title-1", 0, 0, 0);
-    }
-
-    private VotingSessionCanvass buildCanvass(String canvassId, String title, Integer totalVotes, Integer affirmativeVotes, Integer negativeVotes) {
-        return VotingSessionCanvassBuilder.get()
-                .with(VotingSessionCanvass::setId, canvassId)
-                .with(VotingSessionCanvass::setTitle, title)
-                .with(VotingSessionCanvass::setTotalVotes, totalVotes)
-                .with(VotingSessionCanvass::setAffirmativeVotes, affirmativeVotes)
-                .with(VotingSessionCanvass::setNegativeVotes, negativeVotes)
-                .build();
-    }
-
     private VotingSession buildSession(String sessionId) {
-        return buildSession(sessionId, buildAgenda(), buildCanvass(),
+        return buildSession(sessionId, buildAgenda(),
                 now().withNano(0), now().withNano(0).plusMinutes(5), OPENED, FALSE);
     }
 
     private VotingSession buildPastSession(String sessionId) {
-        return buildSession(sessionId, buildAgenda(), buildCanvass(),
+        return buildSession(sessionId, buildAgenda(),
                 now().withNano(0).minusMinutes(10), now().withNano(0).minusMinutes(5), OPENED, FALSE);
     }
 
-    private VotingSession buildSession(String sessionId, VotingAgenda agenda) {
-        return buildSession(sessionId, agenda, 5L);
-    }
-
-    private VotingSession buildSession(String sessionId, VotingAgenda agenda, VotingSessionCanvass canvass) {
-        return buildSession(sessionId, agenda, canvass,5L);
-    }
-
-    private VotingSession buildSession(String sessionId, VotingAgenda agenda, Long deadlineMinutes) {
-        return buildSession(sessionId, agenda, buildCanvass(),
-                now().withNano(0), now().withNano(0).plusMinutes(deadlineMinutes), OPENED, FALSE);
-    }
-
-    private VotingSession buildSession(String sessionId, VotingAgenda agenda, VotingSessionCanvass canvass, Long deadlineMinutes) {
-        return buildSession(sessionId, agenda, canvass,
-                now().withNano(0), now().withNano(0).plusMinutes(deadlineMinutes), OPENED, FALSE);
-    }
-
-    private VotingSession buildSession(String sessionId, VotingAgenda agenda, VotingSessionCanvass canvass, LocalDateTime openingTime, LocalDateTime closingTime, VotingSessionStatus status, Boolean published) {
+    private VotingSession buildSession(String sessionId, VotingAgenda agenda, LocalDateTime openingTime, LocalDateTime closingTime, VotingSessionStatus status, Boolean published) {
         return VotingSessionBuilder.get()
                 .with(VotingSession::setId, sessionId)
                 .with(VotingSession::setAgenda, agenda)
-                .with(VotingSession::setCanvass, canvass)
                 .with(VotingSession::setOpeningTime, openingTime)
                 .with(VotingSession::setClosingTime, closingTime)
                 .with(VotingSession::setStatus, status)
@@ -455,22 +319,8 @@ public class VoteServiceTest {
                 .build();
     }
 
-    private Vote buildVoteYes(VotingSession session) {
-        String userId = "1234567890";
-        return buildVote(randomUUID().toString(), userId, session, YES);
-    }
-
     private Vote buildVoteYes(String voteId, String userId, VotingSession session) {
         return buildVote(voteId, userId, session, YES);
-    }
-
-    private Vote buildVoteNo(VotingSession session) {
-        String userId = "1234567890";
-        return buildVote(randomUUID().toString(), userId, session, NO);
-    }
-
-    private Vote buildVoteNo(String voteId, String userId, VotingSession session) {
-        return buildVote(voteId, userId, session, NO);
     }
 
     private Vote buildVote(String voteId, String userId, VotingSession session, VoteChoice choice) {

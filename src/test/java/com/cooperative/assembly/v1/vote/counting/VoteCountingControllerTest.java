@@ -76,8 +76,8 @@ public class VoteCountingControllerTest {
         this.affirmativeVotes = 22;
         this.negativeVotes = 13;
         this.agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        this.canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
-        this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
+        this.session = new VotingSession(sessionUUID, agenda, openingTime, closingTime, OPENED, FALSE);
+        this.canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, session);
 
         this.requestFormatErrorCode = "ERR0100";
         this.incorrectRequestFormat = "Incorrect request format";

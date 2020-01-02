@@ -412,8 +412,7 @@ public class VotingSessionControllerTest {
 
     private ResultActions performSuccessOpening() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, openingTime, closingTime, OPENED, FALSE);
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
@@ -424,8 +423,7 @@ public class VotingSessionControllerTest {
 
     private ResultActions performSuccessOpeningPast() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime.minusMinutes(10), closingTime.minusMinutes(10), CLOSED, FALSE);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, openingTime.minusMinutes(10), closingTime.minusMinutes(10), CLOSED, FALSE);
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
@@ -485,8 +483,7 @@ public class VotingSessionControllerTest {
 
     private ResultActions performNullDeadlineMinutesOpeningSession() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTimeBasedOnDefaultDeadline, OPENED, FALSE);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, openingTime, closingTimeBasedOnDefaultDeadline, OPENED, FALSE);
         when(votingSessionService.openFor(agendaUUID, DEFAULT_DEADLINE_MINUTES)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestNullDeadlineMinutesVotingSessionOpening.getURL(), UTF_8);

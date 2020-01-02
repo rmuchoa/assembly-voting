@@ -7,6 +7,7 @@ import com.cooperative.assembly.v1.voting.session.VotingSessionService;
 import com.cooperative.assembly.v1.voting.session.VotingSessionStatus;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 
+import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,9 @@ public class VoteCountingServiceTest {
     @MockBean
     private VotingSessionService votingSessionService;
 
+    @MockBean
+    private VotingSessionCanvassService votingSessionCanvassService;
+
     @Test
     public void shouldLoadVotingSessionForGivenAgendaWhenGettingVoteCounting() {
         String agendaId = randomUUID().toString();
@@ -45,9 +49,29 @@ public class VoteCountingServiceTest {
         VotingSession session = buildSession(sessionId, agenda);
         when(votingSessionService.loadVoteSessionByAgenda(agendaId)).thenReturn(session);
 
+        VotingSessionCanvass canvass = buildCanvass(session);
+        when(votingSessionCanvassService.reloadVotingSessionCanvass(session)).thenReturn(canvass);
+
         service.getVoteCounting(agendaId);
 
         verify(votingSessionService, only()).loadVoteSessionByAgenda(agendaId);
+    }
+
+    @Test
+    public void shouldReloadVotingSessionCanvassByLoadedSessionWhenGettingVoteCounting() {
+        String agendaId = randomUUID().toString();
+        VotingAgenda agenda = buildAgenda(agendaId);
+
+        String sessionId = randomUUID().toString();
+        VotingSession session = buildSession(sessionId, agenda);
+        when(votingSessionService.loadVoteSessionByAgenda(eq(agendaId))).thenReturn(session);
+
+        VotingSessionCanvass canvass = buildCanvass(session);
+        when(votingSessionCanvassService.reloadVotingSessionCanvass(eq(session))).thenReturn(canvass);
+
+        service.getVoteCounting(agendaId);
+
+        verify(votingSessionCanvassService, only()).reloadVotingSessionCanvass(eq(session));
     }
 
     @Test
@@ -56,19 +80,20 @@ public class VoteCountingServiceTest {
         String agendaTitle = "agenda-title-1";
         VotingAgenda agenda = buildAgenda(agendaId, agendaTitle);
 
-        String canvassId = randomUUID().toString();
-        Integer totalVotes = 10;
-        Integer affirmativeVotes = 8;
-        Integer negativeVotes = 2;
-        VotingSessionCanvass canvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
-
         String sessionId = randomUUID().toString();
         LocalDateTime openingTime = now().withNano(0);
         LocalDateTime closingTime = openingTime.plusMinutes(5);
         VotingSessionStatus status = CLOSED;
         Boolean published = FALSE;
-        VotingSession session = buildSession(sessionId, agenda, canvass, openingTime, closingTime, status, published);
+        VotingSession session = buildSession(sessionId, agenda, openingTime, closingTime, status, published);
         when(votingSessionService.loadVoteSessionByAgenda(agendaId)).thenReturn(session);
+
+        String canvassId = randomUUID().toString();
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass canvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, session);
+        when(votingSessionCanvassService.reloadVotingSessionCanvass(eq(session))).thenReturn(canvass);
 
         VoteCounting counting = service.getVoteCounting(agendaId);
 
@@ -97,17 +122,26 @@ public class VoteCountingServiceTest {
     }
 
     private VotingSessionCanvass buildCanvass() {
-        return buildCanvass(randomUUID().toString(), "agenda-title-1", 10, 8, 2);
+        return buildCanvass(buildSession());
     }
 
-    private VotingSessionCanvass buildCanvass(String canvassId, String title, Integer totalVotes, Integer affirmativeVotes, Integer negativeVotes) {
+    private VotingSessionCanvass buildCanvass(VotingSession session) {
+        return buildCanvass(randomUUID().toString(), "agenda-title-1", 10, 8, 2, session);
+    }
+
+    private VotingSessionCanvass buildCanvass(String canvassId, String title, Integer totalVotes, Integer affirmativeVotes, Integer negativeVotes, VotingSession session) {
         return VotingSessionCanvassBuilder.get()
                 .with(VotingSessionCanvass::setId, canvassId)
                 .with(VotingSessionCanvass::setTitle, title)
                 .with(VotingSessionCanvass::setTotalVotes, totalVotes)
                 .with(VotingSessionCanvass::setAffirmativeVotes, affirmativeVotes)
                 .with(VotingSessionCanvass::setNegativeVotes, negativeVotes)
+                .with(VotingSessionCanvass::setSession, session)
                 .build();
+    }
+
+    private VotingSession buildSession() {
+        return buildSession(randomUUID().toString(), buildAgenda());
     }
 
     private VotingSession buildSession(String sessionId, VotingAgenda agenda) {
@@ -115,15 +149,13 @@ public class VoteCountingServiceTest {
     }
 
     private VotingSession buildSession(String sessionId, VotingAgenda agenda, Long deadlineMinutes) {
-        return buildSession(sessionId, agenda, buildCanvass(),
-                now().withNano(0), now().withNano(0).plusMinutes(deadlineMinutes), OPENED, FALSE);
+        return buildSession(sessionId, agenda, now().withNano(0), now().withNano(0).plusMinutes(deadlineMinutes), OPENED, FALSE);
     }
 
-    private VotingSession buildSession(String sessionId, VotingAgenda agenda, VotingSessionCanvass canvass, LocalDateTime openingTime, LocalDateTime closingTime, VotingSessionStatus status, Boolean published) {
+    private VotingSession buildSession(String sessionId, VotingAgenda agenda, LocalDateTime openingTime, LocalDateTime closingTime, VotingSessionStatus status, Boolean published) {
         return VotingSessionBuilder.get()
                 .with(VotingSession::setId, sessionId)
                 .with(VotingSession::setAgenda, agenda)
-                .with(VotingSession::setCanvass, canvass)
                 .with(VotingSession::setOpeningTime, openingTime)
                 .with(VotingSession::setClosingTime, closingTime)
                 .with(VotingSession::setStatus, status)

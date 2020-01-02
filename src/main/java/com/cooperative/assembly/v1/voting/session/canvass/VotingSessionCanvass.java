@@ -1,9 +1,11 @@
 package com.cooperative.assembly.v1.voting.session.canvass;
 
+import com.cooperative.assembly.v1.voting.session.VotingSession;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -18,6 +20,8 @@ public class VotingSessionCanvass {
     private Integer totalVotes;
     private Integer affirmativeVotes;
     private Integer negativeVotes;
+    @DBRef
+    private VotingSession session;
 
     /**
      * Increment an afirmative vote, increasing total and affirmative votes
