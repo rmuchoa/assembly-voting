@@ -24,7 +24,7 @@ public class VotingReport {
     public static VotingReport buildReport(final VotingSession session) {
         VotingAgenda agenda = session.getAgenda();
         VotingSessionCanvass canvass = session.getCanvass();
-        return new VotingReport(canvass.getTitle(), canvass.getStatus(), canvass.getTotalVotes(),
+        return new VotingReport(canvass.getTitle(), session.getStatus(), canvass.getTotalVotes(),
                 canvass.getAffirmativeVotes(), canvass.getNegativeVotes(), agenda.getId(), session.getId());
     }
 

@@ -5,7 +5,6 @@ import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgendaResponse;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
 import com.cooperative.assembly.v1.voting.session.VotingSessionResponse;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,12 +20,11 @@ public class VoteResponse {
     private VoteChoice choice;
 
     public static ResponseJson<VoteResponse, Void> buildResponse(final Vote vote) {
-        VotingAgenda agenda = vote.getAgenda();
+        VotingSession session = vote.getSession();
+        VotingAgenda agenda = session.getAgenda();
         VotingAgendaResponse agendaResponse = new VotingAgendaResponse(agenda.getId(), agenda.getTitle());
 
-        VotingSession session = vote.getSession();
-        VotingSessionCanvass canvass = session.getCanvass();
-        VotingSessionResponse sessionResponse = new VotingSessionResponse(session.getId(), agendaResponse, session.getOpeningTime(), session.getClosingTime(), canvass.getStatus());
+        VotingSessionResponse sessionResponse = new VotingSessionResponse(session.getId(), agendaResponse, session.getOpeningTime(), session.getClosingTime(), session.getStatus());
         VoteResponse data = new VoteResponse(vote.getId(), vote.getUserId(), sessionResponse, vote.getChoice());
         return new ResponseJson<>(data);
     }

@@ -27,38 +27,21 @@ public interface VotingSessionRepository extends MongoRepository<VotingSession, 
     public Optional<VotingSession> findByAgendaId(String agendaId);
 
     /**
-     * Find all voting sessions that matches by canvass status and canvass published property values.
+     * Find all voting sessions that matches by status and closingTime is before another time value (like now).
+     *
+     * @param status
+     * @param time
+     * @return
+     */
+    public List<VotingSession> findByStatusAndClosingTimeBefore(String status, LocalDateTime time);
+
+    /**
+     * Find all voting sessions that matches by status and published property values.
      *
      * @param status
      * @param published
      * @return
      */
-    public List<VotingSession> findByCanvassStatusAndCanvassPublished(String status, Boolean published);
-
-    /**
-     * Find all voting sessions that matches by canvass status and session closingTime is before another time value (like now).
-     *
-     * @param status
-     * @param time
-     * @return
-     */
-    public List<VotingSession> findByClosingTimeBeforeAndCanvass_Status(LocalDateTime time, String status);
-
-    /**
-     * Find all voting sessions for filtered canvasses.
-     *
-     * @param canvasses
-     * @return
-     */
-    public List<VotingSession> findByCanvassIn(List<VotingSessionCanvass> canvasses);
-
-    /**
-     * Find all voting sessions for filtered canvasses and closingTime is before fieltered time.
-     *
-     * @param canvasses
-     * @param time
-     * @return
-     */
-    public List<VotingSession> findByCanvassInAndClosingTimeBefore(List<VotingSessionCanvass> canvasses, LocalDateTime time);
+    public List<VotingSession> findByStatusAndPublished(String status, Boolean published);
 
 }

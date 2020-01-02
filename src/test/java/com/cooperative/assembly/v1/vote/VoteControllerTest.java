@@ -25,6 +25,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 
+import static com.cooperative.assembly.v1.vote.VoteChoice.YES;
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.lang.Boolean.FALSE;
@@ -92,7 +93,6 @@ public class VoteControllerTest {
     private String canvassUUID;
     private String userId;
     private String agendaTitle;
-    private VoteChoice positiveChoice;
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;
     private Integer totalVotes;
@@ -101,7 +101,7 @@ public class VoteControllerTest {
     private String requestFormatErrorCode;
     private String incorrectRequestFormat;
     private String userIdField;
-    private String agendaIdField;
+    private String sessionIdField;
     private String choiceField;
     private VotingAgenda agenda;
     private VotingSessionCanvass canvass;
@@ -111,10 +111,10 @@ public class VoteControllerTest {
     public void setup() {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
         this.voteUUID = randomUUID().toString();
-        this.sessionUUID = randomUUID().toString();
+        this.agendaUUID = randomUUID().toString();
         this.canvassUUID = randomUUID().toString();
+        this.sessionUUID = "2b6f8057-cd5e-4a20-afa0-c04419a8983b";
         this.userId = "12429593009";
-        this.agendaUUID = "2b6f8057-cd5e-4a20-afa0-c04419a8983b";
         this.agendaTitle = "Eleição de Diretoria";
         this.openingTime = now().withNano(0);
         this.closingTime = openingTime.minusMinutes(5);
@@ -122,13 +122,12 @@ public class VoteControllerTest {
         this.affirmativeVotes = 6;
         this.negativeVotes = 4;
         this.agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        this.canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
-        this.positiveChoice = VoteChoice.YES;
+        this.canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        this.session = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
         this.requestFormatErrorCode = "ERR0100";
         this.incorrectRequestFormat = "Incorrect request format";
         this.userIdField = "userId";
-        this.agendaIdField = "agendaId";
+        this.sessionIdField = "sessionId";
         this.choiceField = "choice";
     }
 
@@ -156,7 +155,7 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.data.session.agenda.id").value(agendaUUID))
                 .andExpect(jsonPath("$.data.session.agenda.title").value(agendaTitle))
                 .andExpect(jsonPath("$.data.session.status").value(OPENED.toString()))
-                .andExpect(jsonPath("$.data.choice").value(positiveChoice.toString()));
+                .andExpect(jsonPath("$.data.choice").value(YES.toString()));
     }
 
     @Test
@@ -183,7 +182,7 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.data.session.agenda.id").value(agendaUUID))
                 .andExpect(jsonPath("$.data.session.agenda.title").value(agendaTitle))
                 .andExpect(jsonPath("$.data.session.status").value(OPENED.toString()))
-                .andExpect(jsonPath("$.data.choice").value(positiveChoice.toString()));
+                .andExpect(jsonPath("$.data.choice").value(YES.toString()));
     }
 
     @Test
@@ -355,9 +354,9 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.errors[*]").exists())
                 .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode, requestFormatErrorCode)))
                 .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.agenda.id.not.empty", "vote.agenda.id.invalid.uuid.format", "vote.agenda.id.invalid.size")))
+                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.session.id.not.empty", "vote.session.id.invalid.uuid.format", "vote.session.id.invalid.size")))
                 .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField, agendaIdField)))
+                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(sessionIdField, sessionIdField, sessionIdField)))
                 .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("", "", "")));
     }
 
@@ -372,9 +371,9 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.errors[0]").exists())
                 .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
                 .andExpect(jsonPath("$.errors[0].title").value(incorrectRequestFormat))
-                .andExpect(jsonPath("$.errors[0].detail").value("vote.agenda.id.not.empty"))
+                .andExpect(jsonPath("$.errors[0].detail").value("vote.session.id.not.empty"))
                 .andExpect(jsonPath("$.errors[0].source").exists())
-                .andExpect(jsonPath("$.errors[0].source.pointer").value(agendaIdField))
+                .andExpect(jsonPath("$.errors[0].source.pointer").value(sessionIdField))
                 .andExpect(jsonPath("$.errors[0].source.parameter").doesNotExist());
     }
 
@@ -389,9 +388,9 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.errors[*]").exists())
                 .andExpect(jsonPath("$.errors[*].code", containsInAnyOrder(requestFormatErrorCode, requestFormatErrorCode)))
                 .andExpect(jsonPath("$.errors[*].title", containsInAnyOrder(incorrectRequestFormat, incorrectRequestFormat)))
-                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.agenda.id.invalid.uuid.format", "vote.agenda.id.invalid.size")))
+                .andExpect(jsonPath("$.errors[*].detail", containsInAnyOrder("vote.session.id.invalid.uuid.format", "vote.session.id.invalid.size")))
                 .andExpect(jsonPath("$.errors[*].source").exists())
-                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(agendaIdField, agendaIdField)))
+                .andExpect(jsonPath("$.errors[*].source.pointer", containsInAnyOrder(sessionIdField, sessionIdField)))
                 .andExpect(jsonPath("$.errors[*].source.parameter", containsInAnyOrder("2b6f8057-cd5e-4a20-afa0-c04419a8983b-2b6f8057", "2b6f8057-cd5e-4a20-afa0-c04419a8983b-2b6f8057")));
     }
 
@@ -406,9 +405,9 @@ public class VoteControllerTest {
                 .andExpect(jsonPath("$.errors[0]").exists())
                 .andExpect(jsonPath("$.errors[0].code").value(requestFormatErrorCode))
                 .andExpect(jsonPath("$.errors[0].title").value(incorrectRequestFormat))
-                .andExpect(jsonPath("$.errors[0].detail").value("vote.agenda.id.invalid.uuid.format"))
+                .andExpect(jsonPath("$.errors[0].detail").value("vote.session.id.invalid.uuid.format"))
                 .andExpect(jsonPath("$.errors[0].source").exists())
-                .andExpect(jsonPath("$.errors[0].source.pointer").value(agendaIdField))
+                .andExpect(jsonPath("$.errors[0].source.pointer").value(sessionIdField))
                 .andExpect(jsonPath("$.errors[0].source.parameter").value("2b6f8057-cd5e-4a20-afa0c04419a8-983b"));
     }
 
@@ -430,8 +429,8 @@ public class VoteControllerTest {
     }
 
     private ResultActions performSuccessRegister() throws Exception {
-        Vote vote = new Vote(voteUUID, userId, agenda, session, positiveChoice);
-        when(service.chooseVote(userId, agendaUUID, positiveChoice)).thenReturn(vote);
+        Vote vote = new Vote(voteUUID, userId, session, YES);
+        when(service.chooseVote(userId, sessionUUID, YES)).thenReturn(vote);
 
         final String bodyContent = Resources.toString(requestChooseVote.getURL(), UTF_8);
         return mockMvc.perform(post("/cooperative/assembly/v1/vote")
@@ -440,8 +439,8 @@ public class VoteControllerTest {
     }
 
     private ResultActions performSuccessRegisterWithFormattedUserId() throws Exception {
-        Vote vote = new Vote(voteUUID, userId, agenda, session, positiveChoice);
-        when(service.chooseVote(userId, agendaUUID, positiveChoice)).thenReturn(vote);
+        Vote vote = new Vote(voteUUID, userId, session, YES);
+        when(service.chooseVote(userId, sessionUUID, YES)).thenReturn(vote);
 
         final String bodyContent = Resources.toString(requestChooseVoteWithFormattedUserId.getURL(), UTF_8);
         return mockMvc.perform(post("/cooperative/assembly/v1/vote")

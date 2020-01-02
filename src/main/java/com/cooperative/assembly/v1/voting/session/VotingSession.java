@@ -25,8 +25,11 @@ public class VotingSession {
     private VotingAgenda agenda;
     @DBRef
     private VotingSessionCanvass canvass;
+
     private LocalDateTime openingTime;
     private LocalDateTime closingTime;
+    private VotingSessionStatus status;
+    private Boolean published;
 
     /**
      * Check if closing time is past before right now to infer this voting session is still opened

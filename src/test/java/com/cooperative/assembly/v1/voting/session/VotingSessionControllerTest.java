@@ -254,21 +254,6 @@ public class VotingSessionControllerTest {
     }
 
     @Test
-    public void shouldReturnOpenedVotingSessionWithGeneratedUUIDAndFutureTimePeriod() throws Exception {
-        final ResultActions result = performSuccessOpeningFuture();
-
-        result.andDo(MockMvcResultHandlers.print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(sessionUUID))
-                .andExpect(jsonPath("$.data.agenda").exists())
-                .andExpect(jsonPath("$.data.agenda.id").value(agendaUUID))
-                .andExpect(jsonPath("$.data.agenda.title").value(agendaTitle))
-                .andExpect(jsonPath("$.data.openingTime").value(openingTime.plusMinutes(10).toString()))
-                .andExpect(jsonPath("$.data.closingTime").value(closingTime.plusMinutes(10).toString()))
-                .andExpect(jsonPath("$.data.status").value(WAITING.toString()));
-    }
-
-    @Test
     public void shouldReturnNotEmptyAndInvalidSizedResponseErrorWhenTryingToPerformVotingSessionOpeningWithEmptyAgendaIdRequestContentProperty() throws Exception {
         final ResultActions result = tryOpenSessionWithEmptyAgendaId();
 
@@ -427,8 +412,8 @@ public class VotingSessionControllerTest {
 
     private ResultActions performSuccessOpening() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0, OPENED, FALSE);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
@@ -439,20 +424,8 @@ public class VotingSessionControllerTest {
 
     private ResultActions performSuccessOpeningPast() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0, CLOSED, FALSE);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime.minusMinutes(10), closingTime.minusMinutes(10));
-        when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
-
-        final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
-        return mockMvc.perform(post("/cooperative/assembly/v1/voting/session")
-                .contentType(MediaType.APPLICATION_JSON_UTF8)
-                .content(bodyContent));
-    }
-
-    private ResultActions performSuccessOpeningFuture() throws Exception {
-        VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0, WAITING, FALSE);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime.plusMinutes(10), closingTime.plusMinutes(10));
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime.minusMinutes(10), closingTime.minusMinutes(10), CLOSED, FALSE);
         when(votingSessionService.openFor(agendaUUID, deadlineMinutes)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestOpenVotingSession.getURL(), UTF_8);
@@ -512,8 +485,8 @@ public class VotingSessionControllerTest {
 
     private ResultActions performNullDeadlineMinutesOpeningSession() throws Exception {
         VotingAgenda agenda = new VotingAgenda(agendaUUID, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0, OPENED, FALSE);
-        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTimeBasedOnDefaultDeadline);
+        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassUUID, agendaTitle, 0, 0, 0);
+        VotingSession votingSession = new VotingSession(sessionUUID, agenda, canvass, openingTime, closingTimeBasedOnDefaultDeadline, OPENED, FALSE);
         when(votingSessionService.openFor(agendaUUID, DEFAULT_DEADLINE_MINUTES)).thenReturn(votingSession);
 
         final String bodyContent = Resources.toString(requestNullDeadlineMinutesVotingSessionOpening.getURL(), UTF_8);

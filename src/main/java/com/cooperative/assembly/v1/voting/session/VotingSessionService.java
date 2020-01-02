@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.CLOSED;
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.lang.Boolean.FALSE;
 import static java.util.UUID.randomUUID;
@@ -22,6 +23,8 @@ import static java.time.LocalDateTime.now;
 @Log4j2
 @Service
 public class VotingSessionService {
+
+    private static final Boolean NOT_PUBLISHED = FALSE;
 
     private VotingSessionRepository repository;
     private VotingAgendaService votingAgendaService;
@@ -71,16 +74,33 @@ public class VotingSessionService {
     }
 
     /**
-     * Load voting session by agenda that was previously related with.
+     * Load voting session by id.
+     * Throw NotFoundReferenceException.class when voting session can not be found.
+     *
+     * @param id
+     * @return
+     */
+    public VotingSession loadVoteSession(final String id) {
+        Optional<VotingSession> session = repository.findById(id);
+        if (!session.isPresent()) {
+            log.error("Voting session was not found", id);
+            throw new NotFoundReferenceException("VotingSession", "voting.session.not.found");
+        }
+
+        return session.get();
+    }
+
+    /**
+     * Load voting session by agenda id related
      * Throw NotFoundReferenceException.class when voting session can not be found.
      *
      * @param agendaId
      * @return
      */
-    public VotingSession loadVoteSession(final String agendaId) {
+    public VotingSession loadVoteSessionByAgenda(final String agendaId) {
         Optional<VotingSession> session = repository.findByAgendaId(agendaId);
         if (!session.isPresent()) {
-            log.error("Voting session was not found to vote on it's agenda", agendaId);
+            log.error("Voting session was not found for agenda", agendaId);
             throw new NotFoundReferenceException("VotingSession", "voting.session.not.found");
         }
 
@@ -101,7 +121,7 @@ public class VotingSessionService {
 
         VotingSessionCanvass canvass = createSessionCanvass(agenda);
 
-        VotingSession votingSession = new VotingSession(id, agenda, canvass, openingTime, closingTime);
+        VotingSession votingSession = new VotingSession(id, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
         log.debug("Save voting session to start voting");
         return repository.save(votingSession);
     }
@@ -127,7 +147,7 @@ public class VotingSessionService {
      */
     protected VotingSessionCanvass buildNewSessionCanvass(final VotingAgenda agenda) {
         String id = randomUUID().toString();
-        return new VotingSessionCanvass(id, agenda.getTitle(), 0, 0, 0, OPENED, FALSE);
+        return new VotingSessionCanvass(id, agenda.getTitle(), 0, 0, 0);
     }
 
     /**
@@ -136,8 +156,7 @@ public class VotingSessionService {
      * @return
      */
     public List<VotingSession> loadMissClosedSessions() {
-        List<VotingSessionCanvass> openedCanvasses = votingSessionCanvassService.loadOpenedSessionCanvass();
-        return repository.findByCanvassInAndClosingTimeBefore(openedCanvasses, now());
+        return repository.findByStatusAndClosingTimeBefore(OPENED.toString(), now());
     }
 
     /**
@@ -146,8 +165,18 @@ public class VotingSessionService {
      * @return
      */
     public List<VotingSession> loadClosedSessionsToPublish() {
-        List<VotingSessionCanvass> closedCanvasses = votingSessionCanvassService.loadClosedSessionCanvassToPublish();
-        return repository.findByCanvassIn(closedCanvasses);
+        return repository.findByStatusAndPublished(CLOSED.toString(), NOT_PUBLISHED);
+    }
+
+    /**
+     * Save voting session with new status
+     *
+     * @param session
+     * @return
+     */
+    public VotingSession saveSession(final VotingSession session) {
+        log.debug("Save session status to allow publish voting counting results");
+        return repository.save(session);
     }
 
 }

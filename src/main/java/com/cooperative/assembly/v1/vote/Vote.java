@@ -19,15 +19,12 @@ public class Vote {
     private String id;
     private String userId;
     @DBRef
-    private VotingAgenda agenda;
-    @DBRef
     private VotingSession session;
     private VoteChoice choice;
 
-    public Vote(final String id, final String userId, final VotingAgenda agenda, final VotingSession session) {
+    public Vote(final String id, final String userId, final VotingSession session) {
         this.id = id;
         this.userId = userId;
-        this.agenda = agenda;
         this.session = session;
     }
 

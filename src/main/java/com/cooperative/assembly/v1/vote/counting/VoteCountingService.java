@@ -27,12 +27,12 @@ public class VoteCountingService {
      */
     public VoteCounting getVoteCounting(final String agendaId) {
         log.debug("Finding voting session by agendaId: ", agendaId);
-        VotingSession session = votingSessionService.loadVoteSession(agendaId);
+        VotingSession session = votingSessionService.loadVoteSessionByAgenda(agendaId);
         VotingSessionCanvass canvass = session.getCanvass();
         VotingAgenda agenda = session.getAgenda();
 
         return new VoteCounting(agenda.getTitle(), canvass.getTotalVotes(), canvass.getAffirmativeVotes(),
-                canvass.getNegativeVotes(), session.getOpeningTime(), session.getClosingTime(), canvass.getStatus());
+                canvass.getNegativeVotes(), session.getOpeningTime(), session.getClosingTime(), session.getStatus());
     }
 
 }

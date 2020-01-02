@@ -1,12 +1,14 @@
 package com.cooperative.assembly.v1.voting.session;
 
+import com.cooperative.assembly.builder.VotingAgendaBuilder;
+import com.cooperative.assembly.builder.VotingSessionBuilder;
+import com.cooperative.assembly.builder.VotingSessionCanvassBuilder;
 import com.cooperative.assembly.error.exception.ValidationException;
 import com.cooperative.assembly.error.exception.NotFoundReferenceException;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgendaService;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -57,34 +59,11 @@ public class VotingSessionServiceTest {
     @Captor
     private ArgumentCaptor<LocalDateTime> timeCaptor;
 
-    private String agendaId;
-    private String sessionId;
-    private String canvassId;
-    private String agendaTitle;
-    private Integer totalVotes;
-    private Integer affirmativeVotes;
-    private Integer negativeVotes;
-    private Long deadlineMinutes;
-    private LocalDateTime openingTime;
-    private LocalDateTime closingTime;
-
-    @Before
-    public void setUp() {
-        this.agendaId = randomUUID().toString();
-        this.sessionId = randomUUID().toString();
-        this.canvassId = randomUUID().toString();
-        this.agendaTitle = "agenda-title-1";
-        this.totalVotes = 10;
-        this.affirmativeVotes = 8;
-        this.negativeVotes = 2;
-        this.deadlineMinutes = 5L;
-        this.openingTime = now().withNano(0);
-        this.closingTime = openingTime.plusMinutes(deadlineMinutes);
-    }
-
     @Test
     public void shouldSaveVotingSessionWhenOpeningVotingSessionForGivenAgendaId() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
+        String agendaId = randomUUID().toString();
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId);
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
 
         service.openFor(agendaId, deadlineMinutes);
@@ -94,7 +73,9 @@ public class VotingSessionServiceTest {
 
     @Test
     public void shouldLoadAgendaByGivenAgendaIdWhenOpeningVotingSession() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
+        String agendaId = randomUUID().toString();
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId);
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
 
         service.openFor(agendaId, deadlineMinutes);
@@ -103,12 +84,34 @@ public class VotingSessionServiceTest {
     }
 
     @Test
-    public void shouldSaveVotingSessionWithUUIDAndOpeningAndClosingTimeAndAgendaLoadedById() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
+    public void shouldSaveNewSessionCanvassWhenOpeningSessionForAgendaId() {
+        String agendaId = randomUUID().toString();
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId);
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
+
+        service.openFor(agendaId, deadlineMinutes);
+
+        verify(votingSessionCanvassService, only()).saveCanvass(any(VotingSessionCanvass.class));
+    }
+
+    @Test
+    public void shouldSaveVotingSessionWithUUIDAndOpeningAndClosingTimeAndAgendaLoadedById() {
+        String agendaId = randomUUID().toString();
+        String agendaTitle = "agenda-title-1";
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId, agendaTitle);
+        when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
+
+        String canvassId = randomUUID().toString();
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass expectedCanvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
         when(votingSessionCanvassService.saveCanvass(any(VotingSessionCanvass.class))).thenReturn(expectedCanvass);
 
+        LocalDateTime expectedOpeningTime = now().withNano(0);
+        LocalDateTime expectedClosingTime = expectedOpeningTime.plusMinutes(deadlineMinutes);
         service.openFor(agendaId, deadlineMinutes);
 
         verify(repository).save(votingSessionCaptor.capture());
@@ -119,20 +122,31 @@ public class VotingSessionServiceTest {
         assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("totalVotes", equalTo(totalVotes))));
         assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(affirmativeVotes))));
         assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("negativeVotes", equalTo(negativeVotes))));
-        assertThat(votingSessionCaptor.getValue(), hasProperty("canvass", hasProperty("status", equalTo(OPENED))));
-        assertThat(votingSessionCaptor.getValue().getOpeningTime().withNano(0), equalTo(openingTime));
-        assertThat(votingSessionCaptor.getValue().getClosingTime().withNano(0), equalTo(closingTime));
+        assertThat(votingSessionCaptor.getValue().getOpeningTime().withNano(0), equalTo(expectedOpeningTime));
+        assertThat(votingSessionCaptor.getValue().getClosingTime().withNano(0), equalTo(expectedClosingTime));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("status", equalTo(OPENED)));
+        assertThat(votingSessionCaptor.getValue(), hasProperty("published", equalTo(FALSE)));
     }
 
     @Test
     public void shouldReturnSavedVotingSessionAsIs() {
-        VotingAgenda expectedAgenda = new VotingAgenda(agendaId, agendaTitle);
+        String agendaId = randomUUID().toString();
+        String agendaTitle = "agenda-title-1";
+        Long deadlineMinutes = 5L;
+        VotingAgenda expectedAgenda = buildAgenda(agendaId, agendaTitle);
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(expectedAgenda));
 
-        VotingSessionCanvass expectedCanvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
+        String canvassId = randomUUID().toString();
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass expectedCanvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
         when(votingSessionCanvassService.saveCanvass(any(VotingSessionCanvass.class))).thenReturn(expectedCanvass);
 
-        VotingSession expectedVotingSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime, closingTime);
+        String sessionId = randomUUID().toString();
+        LocalDateTime openingTime = now().withNano(0);
+        LocalDateTime closingTime = openingTime.plusMinutes(deadlineMinutes);
+        VotingSession expectedVotingSession = new VotingSession(sessionId, expectedAgenda, expectedCanvass, openingTime, closingTime, OPENED, FALSE);
         when(repository.save(any(VotingSession.class))).thenReturn(expectedVotingSession);
 
         VotingSession votingSession = service.openFor(agendaId, deadlineMinutes);
@@ -145,16 +159,19 @@ public class VotingSessionServiceTest {
         assertThat(votingSession, hasProperty("canvass", hasProperty("totalVotes", equalTo(totalVotes))));
         assertThat(votingSession, hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(affirmativeVotes))));
         assertThat(votingSession, hasProperty("canvass", hasProperty("negativeVotes", equalTo(negativeVotes))));
-        assertThat(votingSession, hasProperty("canvass", hasProperty("status", equalTo(OPENED))));
         assertThat(votingSession.getOpeningTime().withNano(0), equalTo(openingTime));
         assertThat(votingSession.getClosingTime().withNano(0), equalTo(closingTime));
+        assertThat(votingSession, hasProperty("status", equalTo(OPENED)));
+        assertThat(votingSession, hasProperty("published", equalTo(FALSE)));
     }
 
     @Test
     public void shouldThrowsNotFoundReferenceExceptionExceptionWhenCanFindAnAgendaByGivenId() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        VotingSession foundSession = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
+        String agendaId = randomUUID().toString();
+        String sessionId = randomUUID().toString();
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId);
+        VotingSession foundSession = buildSession(sessionId, agenda, deadlineMinutes);
         when(repository.findByAgendaId(agendaId)).thenReturn(of(foundSession));
 
         assertThatExceptionOfType(ValidationException.class)
@@ -164,7 +181,10 @@ public class VotingSessionServiceTest {
 
     @Test
     public void shouldNeverThrowsAnyNotFoundReferenceExceptionExceptionWhenCanNotFindAnyAgendaByGivenId() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
+        Long deadlineMinutes = 5L;
+        String agendaId = randomUUID().toString();
+        VotingAgenda agenda = buildAgenda(agendaId);
+
         when(repository.findByAgendaId(agendaId)).thenReturn(empty());
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
 
@@ -185,7 +205,7 @@ public class VotingSessionServiceTest {
     @Test
     public void shouldNeverThrowExceptionWhenCanFindAnAgendaByGivenId() {
         String agendaId = randomUUID().toString();
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
+        VotingAgenda agenda = buildAgenda(agendaId);
         when(votingAgendaService.loadAgenda(agendaId)).thenReturn(of(agenda));
 
         assertThatCode(() -> service.loadSessionAgenda(agendaId))
@@ -204,14 +224,11 @@ public class VotingSessionServiceTest {
 
     @Test
     public void shouldNeverThrowExceptionWhenCanFindAnSessionByGivenAgendaId() {
-        String agendaId = randomUUID().toString();
-        String canvassId = randomUUID().toString();
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        VotingSession session = new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
-        when(repository.findByAgendaId(agendaId)).thenReturn(of(session));
+        String sessionId = randomUUID().toString();
+        VotingSession session = buildSession(sessionId);
+        when(repository.findById(sessionId)).thenReturn(of(session));
 
-        assertThatCode(() -> service.loadVoteSession(agendaId))
+        assertThatCode(() -> service.loadVoteSession(sessionId))
                 .doesNotThrowAnyException();
     }
 
@@ -219,89 +236,146 @@ public class VotingSessionServiceTest {
     public void shouldLoadOpenedSessionCanvassesWhenLoadingMissClosedSessions() {
         service.loadMissClosedSessions();
 
-        verify(votingSessionCanvassService, only()).loadOpenedSessionCanvass();
+        verify(repository, only()).findByStatusAndClosingTimeBefore(eq(OPENED.toString()), any(LocalDateTime.class));
     }
 
     @Test
     public void shouldFindSessionsByOpenedSessionCanvassesAndClosingTimeBeforeNowWhenLoadingMissClosedSessions() {
-        VotingSessionCanvass sessionCanvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        List<VotingSessionCanvass> sessionCanvasses = asList(sessionCanvass);
-        when(votingSessionCanvassService.loadOpenedSessionCanvass()).thenReturn(sessionCanvasses);
-
         service.loadMissClosedSessions();
 
-        verify(repository, only()).findByCanvassInAndClosingTimeBefore(eq(sessionCanvasses), timeCaptor.capture());
+        verify(repository, only()).findByStatusAndClosingTimeBefore(eq(OPENED.toString()), timeCaptor.capture());
         assertThat(timeCaptor.getValue(), hasProperty("hour", equalTo(now().getHour())));
         assertThat(timeCaptor.getValue(), hasProperty("minute", equalTo(now().getMinute())));
     }
 
     @Test
     public void shouldReturnFoundSessionsByOpenedCanvassesAndClosingTimeWhenLoadingMissClosedSessions() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass sessionCanvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        VotingSession session = new VotingSession(sessionId, agenda, sessionCanvass, openingTime, closingTime);
-        List<VotingSessionCanvass> sessionCanvasses = asList(sessionCanvass);
+        String agendaId = randomUUID().toString();
+        String agendaTitle = "agenda-title-1";
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId, agendaTitle);
+
+        String canvassId = randomUUID().toString();
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass sessionCanvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+
+        String sessionId = randomUUID().toString();
+        LocalDateTime openingTime = now().withNano(0);
+        LocalDateTime closingTime = openingTime.plusMinutes(deadlineMinutes);
+        VotingSession session = buildSession(sessionId, agenda, sessionCanvass, openingTime, closingTime, OPENED, FALSE);
+
         List<VotingSession> expectedSessions = asList(session);
-        when(votingSessionCanvassService.loadOpenedSessionCanvass()).thenReturn(sessionCanvasses);
-        when(repository.findByCanvassInAndClosingTimeBefore(anyList(), any(LocalDateTime.class))).thenReturn(expectedSessions);
+        when(repository.findByStatusAndClosingTimeBefore(eq(OPENED.toString()), any(LocalDateTime.class))).thenReturn(expectedSessions);
 
         List<VotingSession> sessions = service.loadMissClosedSessions();
-        assertThat(sessions.get(0), hasProperty("id", equalTo(session.getId())));
-        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("id", equalTo(agenda.getId()))));
-        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("title", equalTo(agenda.getTitle()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("id", equalTo(sessionCanvass.getId()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("title", equalTo(sessionCanvass.getTitle()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("totalVotes", equalTo(sessionCanvass.getTotalVotes()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(sessionCanvass.getAffirmativeVotes()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("negativeVotes", equalTo(sessionCanvass.getNegativeVotes()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("status", equalTo(sessionCanvass.getStatus()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("published", equalTo(sessionCanvass.getPublished()))));
-        assertThat(sessions.get(0), hasProperty("openingTime", equalTo(session.getOpeningTime())));
-        assertThat(sessions.get(0), hasProperty("closingTime", equalTo(session.getClosingTime())));
+        assertThat(sessions.get(0), hasProperty("id", equalTo(sessionId)));
+        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("id", equalTo(agendaId))));
+        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("title", equalTo(agendaTitle))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("id", equalTo(canvassId))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("title", equalTo(agendaTitle))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("totalVotes", equalTo(totalVotes))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(affirmativeVotes))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("negativeVotes", equalTo(negativeVotes))));
+        assertThat(sessions.get(0), hasProperty("openingTime", equalTo(openingTime)));
+        assertThat(sessions.get(0), hasProperty("closingTime", equalTo(closingTime)));
+        assertThat(sessions.get(0), hasProperty("status", equalTo(OPENED)));
+        assertThat(sessions.get(0), hasProperty("published", equalTo(FALSE)));
     }
 
     @Test
     public void shouldLoadClosedSessionCanvassToPublishWhenLoadingClosedSessionsToPublish() {
         service.loadClosedSessionsToPublish();
 
-        verify(votingSessionCanvassService, only()).loadClosedSessionCanvassToPublish();
-    }
-
-    @Test
-    public void shouldFindSessionsByClosedSessionCanvassesWhenLoadingClosedSessionsToPublish() {
-        VotingSessionCanvass sessionCanvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, CLOSED, FALSE);
-        List<VotingSessionCanvass> sessionCanvasses = asList(sessionCanvass);
-        when(votingSessionCanvassService.loadClosedSessionCanvassToPublish()).thenReturn(sessionCanvasses);
-
-        service.loadClosedSessionsToPublish();
-
-        verify(repository, only()).findByCanvassIn(eq(sessionCanvasses));
+        verify(repository, only()).findByStatusAndPublished(eq(CLOSED.toString()), eq(FALSE));
     }
 
     @Test
     public void shouldReturnFoundSessionsByClosedCanvassesWhenLoadingClosedSessionsToPublish() {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        VotingSessionCanvass sessionCanvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        VotingSession session = new VotingSession(sessionId, agenda, sessionCanvass, openingTime, closingTime);
-        List<VotingSessionCanvass> sessionCanvasses = asList(sessionCanvass);
+        String agendaId = randomUUID().toString();
+        String agendaTitle = "agenda-title-1";
+        Long deadlineMinutes = 5L;
+        VotingAgenda agenda = buildAgenda(agendaId, agendaTitle);
+
+        String canvassId = randomUUID().toString();
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass sessionCanvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+
+        String sessionId = randomUUID().toString();
+        LocalDateTime openingTime = now().withNano(0);
+        LocalDateTime closingTime = openingTime.plusMinutes(deadlineMinutes);
+        VotingSession session = buildSession(sessionId, agenda, sessionCanvass, openingTime, closingTime, CLOSED, FALSE);
         List<VotingSession> expectedSessions = asList(session);
-        when(votingSessionCanvassService.loadClosedSessionCanvassToPublish()).thenReturn(sessionCanvasses);
-        when(repository.findByCanvassIn(anyList())).thenReturn(expectedSessions);
+        when(repository.findByStatusAndPublished(eq(CLOSED.toString()), eq(FALSE))).thenReturn(expectedSessions);
 
         List<VotingSession> sessions = service.loadClosedSessionsToPublish();
 
         assertThat(sessions.get(0), hasProperty("id", equalTo(session.getId())));
-        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("id", equalTo(agenda.getId()))));
-        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("title", equalTo(agenda.getTitle()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("id", equalTo(sessionCanvass.getId()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("title", equalTo(sessionCanvass.getTitle()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("totalVotes", equalTo(sessionCanvass.getTotalVotes()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(sessionCanvass.getAffirmativeVotes()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("negativeVotes", equalTo(sessionCanvass.getNegativeVotes()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("status", equalTo(sessionCanvass.getStatus()))));
-        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("published", equalTo(sessionCanvass.getPublished()))));
-        assertThat(sessions.get(0), hasProperty("openingTime", equalTo(session.getOpeningTime())));
-        assertThat(sessions.get(0), hasProperty("closingTime", equalTo(session.getClosingTime())));
+        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("id", equalTo(agendaId))));
+        assertThat(sessions.get(0), hasProperty("agenda", hasProperty("title", equalTo(agendaTitle))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("id", equalTo(canvassId))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("title", equalTo(agendaTitle))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("totalVotes", equalTo(totalVotes))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(affirmativeVotes))));
+        assertThat(sessions.get(0), hasProperty("canvass", hasProperty("negativeVotes", equalTo(negativeVotes))));
+        assertThat(sessions.get(0), hasProperty("openingTime", equalTo(openingTime)));
+        assertThat(sessions.get(0), hasProperty("closingTime", equalTo(closingTime)));
+        assertThat(sessions.get(0), hasProperty("status", equalTo(CLOSED)));
+        assertThat(sessions.get(0), hasProperty("published", equalTo(FALSE)));
+    }
+
+    private VotingAgenda buildAgenda() {
+        return buildAgenda(randomUUID().toString());
+    }
+
+    private VotingAgenda buildAgenda(String agendaId) {
+        return buildAgenda(agendaId, "agenda-title-1");
+    }
+
+    private VotingAgenda buildAgenda(String agendaId, String agendaTitle) {
+        return VotingAgendaBuilder.get()
+                .with(VotingAgenda::setId, agendaId)
+                .with(VotingAgenda::setTitle, agendaTitle)
+                .build();
+    }
+
+    private VotingSessionCanvass buildCanvass() {
+        return buildCanvass(randomUUID().toString(), "agenda-title-1", 10, 8, 2);
+    }
+
+    private VotingSessionCanvass buildCanvass(String canvassId, String title, Integer totalVotes, Integer affirmativeVotes, Integer negativeVotes) {
+        return VotingSessionCanvassBuilder.get()
+                .with(VotingSessionCanvass::setId, canvassId)
+                .with(VotingSessionCanvass::setTitle, title)
+                .with(VotingSessionCanvass::setTotalVotes, totalVotes)
+                .with(VotingSessionCanvass::setAffirmativeVotes, affirmativeVotes)
+                .with(VotingSessionCanvass::setNegativeVotes, negativeVotes)
+                .build();
+    }
+
+    private VotingSession buildSession(String sessionId) {
+        return buildSession(sessionId, buildAgenda(), buildCanvass(),
+                now().withNano(0), now().withNano(0).plusMinutes(5), OPENED, FALSE);
+    }
+
+    private VotingSession buildSession(String sessionId, VotingAgenda agenda, Long deadlineMinutes) {
+        return buildSession(sessionId, agenda, buildCanvass(),
+                now().withNano(0), now().withNano(0).plusMinutes(deadlineMinutes), OPENED, FALSE);
+    }
+
+    private VotingSession buildSession(String sessionId, VotingAgenda agenda, VotingSessionCanvass canvass, LocalDateTime openingTime, LocalDateTime closingTime, VotingSessionStatus status, Boolean published) {
+        return VotingSessionBuilder.get()
+                .with(VotingSession::setId, sessionId)
+                .with(VotingSession::setAgenda, agenda)
+                .with(VotingSession::setCanvass, canvass)
+                .with(VotingSession::setOpeningTime, openingTime)
+                .with(VotingSession::setClosingTime, closingTime)
+                .with(VotingSession::setStatus, status)
+                .with(VotingSession::setPublished, published)
+                .build();
     }
 
 }

@@ -1,12 +1,12 @@
 package com.cooperative.assembly.v1.voting.report;
 
+import com.cooperative.assembly.builder.*;
 import com.cooperative.assembly.v1.voting.agenda.VotingAgenda;
 import com.cooperative.assembly.v1.voting.session.VotingSession;
 import com.cooperative.assembly.v1.voting.session.VotingSessionService;
+import com.cooperative.assembly.v1.voting.session.VotingSessionStatus;
 import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -21,6 +21,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.CLOSED;
 import static com.cooperative.assembly.v1.voting.session.VotingSessionStatus.OPENED;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
@@ -36,7 +37,7 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = { VotingReportMessageProducer.class, VotingSessionService.class, VotingSessionCanvassService.class })
+@ContextConfiguration(classes = { VotingReportMessageProducer.class, VotingSessionService.class })
 @TestPropertySource(properties = { "spring.activemq.application.queue.name=assembly-voting-results" })
 public class VotingReportMessageProducerTest {
 
@@ -49,9 +50,6 @@ public class VotingReportMessageProducerTest {
     private VotingSessionService service;
 
     @MockBean
-    private VotingSessionCanvassService votingSessionCanvassService;
-
-    @MockBean
     private JmsTemplate jmsTemplate;
 
     @MockBean
@@ -61,30 +59,7 @@ public class VotingReportMessageProducerTest {
     private ArgumentCaptor<VotingReport> reportCaptor;
 
     @Captor
-    private ArgumentCaptor<VotingSessionCanvass> canvassCaptor;
-
-    private String agendaId;
-    private String canvassId;
-    private String agendaTitle;
-    private Integer totalVotes;
-    private Integer affirmativeVotes;
-    private Integer negativeVotes;
-    private Long deadlineMinutes;
-    private LocalDateTime openingTime;
-    private LocalDateTime closingTime;
-
-    @Before
-    public void setUp() {
-        this.agendaId = randomUUID().toString();
-        this.canvassId = randomUUID().toString();
-        this.agendaTitle = "agenda-title-1";
-        this.totalVotes = 10;
-        this.affirmativeVotes = 8;
-        this.negativeVotes = 2;
-        this.deadlineMinutes = 5L;
-        this.openingTime = now().withNano(0);
-        this.closingTime = openingTime.plusMinutes(deadlineMinutes);
-    }
+    private ArgumentCaptor<VotingSession> sessionCaptor;
 
     @Test
     public void shouldLoadClosedSessionsToPublishWhenReportClosedSessionResults() {
@@ -95,8 +70,8 @@ public class VotingReportMessageProducerTest {
 
     @Test
     public void shouldConvertAllSessionCanvassInJsonVotingReportToSendMessageWhenLoadingClosedSessionsToPublish() {
-        VotingSession session1 = buildNewSession();
-        VotingSession session2 = buildNewSession();
+        VotingSession session1 = buildSession();
+        VotingSession session2 = buildSession();
         List<VotingSession> sessions = asList(session1, session2);
         when(service.loadClosedSessionsToPublish()).thenReturn(sessions);
 
@@ -108,26 +83,34 @@ public class VotingReportMessageProducerTest {
     @Test
     public void shouldConvertEachSessionCanvassInJsonVotingReportWhenLoadingClosedSessionsToPublish() {
         String sessionId = randomUUID().toString();
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        List<VotingSession> sessions = asList(buildNewSession(sessionId, canvass));
-        when(service.loadClosedSessionsToPublish()).thenReturn(sessions);
+        String canvassId = randomUUID().toString();
+        String agendaId = randomUUID().toString();
+        String agendaTitle = "agenda-title-1";
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        LocalDateTime openingTime = now().withNano(0);
+        LocalDateTime closingTime = openingTime.plusMinutes(5);
+        VotingSessionCanvass canvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+        VotingAgenda agenda = buildAgenda(agendaId, agendaTitle);
+        VotingSession session = buildSession(sessionId, agenda, canvass, openingTime, closingTime, OPENED, FALSE);
+        when(service.loadClosedSessionsToPublish()).thenReturn(asList(session));
 
         messageProducer.reportClosedSessionResults();
 
         verify(reportMapper, only()).toJson(reportCaptor.capture());
-        assertThat(reportCaptor.getValue(), hasProperty("title", equalTo(canvass.getTitle())));
-        assertThat(reportCaptor.getValue(), hasProperty("status", equalTo(canvass.getStatus())));
-        assertThat(reportCaptor.getValue(), hasProperty("totalVotes", equalTo(canvass.getTotalVotes())));
-        assertThat(reportCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(canvass.getAffirmativeVotes())));
-        assertThat(reportCaptor.getValue(), hasProperty("negativeVotes", equalTo(canvass.getNegativeVotes())));
+        assertThat(reportCaptor.getValue(), hasProperty("title", equalTo(agendaTitle)));
+        assertThat(reportCaptor.getValue(), hasProperty("status", equalTo(OPENED)));
+        assertThat(reportCaptor.getValue(), hasProperty("totalVotes", equalTo(totalVotes)));
+        assertThat(reportCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(affirmativeVotes)));
+        assertThat(reportCaptor.getValue(), hasProperty("negativeVotes", equalTo(negativeVotes)));
         assertThat(reportCaptor.getValue(), hasProperty("agendaId", equalTo(agendaId)));
         assertThat(reportCaptor.getValue(), hasProperty("sessionId", equalTo(sessionId)));
     }
 
     @Test
     public void shouldConvertToReportAndSendAsMessageForEachSessionCanvassWhenLoadingClosedSessionsToPublish() throws Exception {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        List<VotingSession> sessions = asList(buildNewSession(canvass));
+        List<VotingSession> sessions = asList(buildSession());
         when(service.loadClosedSessionsToPublish()).thenReturn(sessions);
 
         VotingReport report = VotingReport.buildReport(sessions.get(0));
@@ -141,24 +124,42 @@ public class VotingReportMessageProducerTest {
 
     @Test
     public void shouldSaveEachSessionCanvassWithTruePublishedWhenLoadingClosedSessionsToPublish() throws Exception {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        List<VotingSession> sessions = asList(buildNewSession(canvass));
-        when(service.loadClosedSessionsToPublish()).thenReturn(sessions);
 
-        VotingReport report = VotingReport.buildReport(sessions.get(0));
+        String agendaId = randomUUID().toString();
+        String agendaTitle = "agenda-title-1";
+        VotingAgenda agenda = buildAgenda(agendaId, agendaTitle);
+
+        String canvassId = randomUUID().toString();
+        Integer totalVotes = 10;
+        Integer affirmativeVotes = 8;
+        Integer negativeVotes = 2;
+        VotingSessionCanvass canvass = buildCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes);
+
+        String sessionId = randomUUID().toString();
+        LocalDateTime openingTime = now().withNano(0);
+        LocalDateTime closingTime = openingTime.plusMinutes(5);
+        VotingSession session = buildSession(sessionId, agenda, canvass, openingTime, closingTime, CLOSED, FALSE);
+        when(service.loadClosedSessionsToPublish()).thenReturn(asList(session));
+
+        VotingReport report = VotingReport.buildReport(session);
         String reportAsString = new ObjectMapper().writeValueAsString(report);
         when(reportMapper.toJson(any(VotingReport.class))).thenReturn(of(reportAsString));
 
         messageProducer.reportClosedSessionResults();
 
-        verify(votingSessionCanvassService, only()).saveCanvass(canvassCaptor.capture());
-        assertThat(canvassCaptor.getValue(), hasProperty("id", equalTo(canvass.getId())));
-        assertThat(canvassCaptor.getValue(), hasProperty("title", equalTo(canvass.getTitle())));
-        assertThat(canvassCaptor.getValue(), hasProperty("totalVotes", equalTo(canvass.getTotalVotes())));
-        assertThat(canvassCaptor.getValue(), hasProperty("affirmativeVotes", equalTo(canvass.getAffirmativeVotes())));
-        assertThat(canvassCaptor.getValue(), hasProperty("negativeVotes", equalTo(canvass.getNegativeVotes())));
-        assertThat(canvassCaptor.getValue(), hasProperty("status", equalTo(canvass.getStatus())));
-        assertThat(canvassCaptor.getValue(), hasProperty("published", equalTo(TRUE)));
+        verify(service, atLeastOnce()).saveSession(sessionCaptor.capture());
+        assertThat(sessionCaptor.getValue(), hasProperty("id", equalTo(sessionId)));
+        assertThat(sessionCaptor.getValue(), hasProperty("agenda", hasProperty("id", equalTo(agendaId))));
+        assertThat(sessionCaptor.getValue(), hasProperty("agenda", hasProperty("title", equalTo(agendaTitle))));
+        assertThat(sessionCaptor.getValue(), hasProperty("canvass", hasProperty("id", equalTo(canvassId))));
+        assertThat(sessionCaptor.getValue(), hasProperty("canvass", hasProperty("title", equalTo(agendaTitle))));
+        assertThat(sessionCaptor.getValue(), hasProperty("canvass", hasProperty("totalVotes", equalTo(totalVotes))));
+        assertThat(sessionCaptor.getValue(), hasProperty("canvass", hasProperty("affirmativeVotes", equalTo(affirmativeVotes))));
+        assertThat(sessionCaptor.getValue(), hasProperty("canvass", hasProperty("negativeVotes", equalTo(negativeVotes))));
+        assertThat(sessionCaptor.getValue(), hasProperty("openingTime", equalTo(openingTime)));
+        assertThat(sessionCaptor.getValue(), hasProperty("closingTime", equalTo(closingTime)));
+        assertThat(sessionCaptor.getValue(), hasProperty("status", equalTo(CLOSED)));
+        assertThat(sessionCaptor.getValue(), hasProperty("published", equalTo(TRUE)));
     }
 
     @Test
@@ -172,7 +173,7 @@ public class VotingReportMessageProducerTest {
 
     @Test
     public void shouldNeverReportAnyMessageWhenCanNotConvertCanvassVotingReportIntoJsonForAnyClosedSessionToPublish() {
-        List<VotingSession> sessions = asList(buildNewSession());
+        List<VotingSession> sessions = asList(buildSession());
         when(service.loadClosedSessionsToPublish()).thenReturn(sessions);
         when(reportMapper.toJson(any(VotingReport.class))).thenReturn(empty());
 
@@ -183,28 +184,63 @@ public class VotingReportMessageProducerTest {
 
     @Test
     public void shouldNeverSaveAnyCanvassStatusWhenCanNotConvertCanvassVotingReportIntoJsonForAnyClosedSessionToPublish() {
-        List<VotingSession> sessions = asList(buildNewSession());
+        List<VotingSession> sessions = asList(buildSession());
         when(service.loadClosedSessionsToPublish()).thenReturn(sessions);
         when(reportMapper.toJson(any(VotingReport.class))).thenReturn(empty());
 
         messageProducer.reportClosedSessionResults();
 
-        verify(votingSessionCanvassService, never()).saveCanvass(any(VotingSessionCanvass.class));
+        verify(service, never()).saveSession(any(VotingSession.class));
     }
 
-    private VotingSession buildNewSession() {
-        VotingSessionCanvass canvass = new VotingSessionCanvass(canvassId, agendaTitle, totalVotes, affirmativeVotes, negativeVotes, OPENED, FALSE);
-        return buildNewSession(canvass);
+    private VotingAgenda buildAgenda() {
+        return buildAgenda(randomUUID().toString());
     }
 
-    private VotingSession buildNewSession(final VotingSessionCanvass canvass) {
-        String sessionId = randomUUID().toString();
-        return buildNewSession(sessionId, canvass);
+    private VotingAgenda buildAgenda(String agendaId) {
+        return buildAgenda(agendaId, "agenda-title-1");
     }
 
-    private VotingSession buildNewSession(final String sessionId, final VotingSessionCanvass canvass) {
-        VotingAgenda agenda = new VotingAgenda(agendaId, agendaTitle);
-        return new VotingSession(sessionId, agenda, canvass, openingTime, closingTime);
+    private VotingAgenda buildAgenda(String agendaId, String agendaTitle) {
+        return VotingAgendaBuilder.get()
+                .with(VotingAgenda::setId, agendaId)
+                .with(VotingAgenda::setTitle, agendaTitle)
+                .build();
+    }
+
+    private VotingSessionCanvass buildCanvass() {
+        return buildCanvass(randomUUID().toString(), "agenda-title-1", 10, 8, 2);
+    }
+
+    private VotingSessionCanvass buildCanvass(String canvassId, String title, Integer totalVotes, Integer affirmativeVotes, Integer negativeVotes) {
+        return VotingSessionCanvassBuilder.get()
+                .with(VotingSessionCanvass::setId, canvassId)
+                .with(VotingSessionCanvass::setTitle, title)
+                .with(VotingSessionCanvass::setTotalVotes, totalVotes)
+                .with(VotingSessionCanvass::setAffirmativeVotes, affirmativeVotes)
+                .with(VotingSessionCanvass::setNegativeVotes, negativeVotes)
+                .build();
+    }
+
+    private VotingSession buildSession() {
+        return buildSession(randomUUID().toString());
+    }
+
+    private VotingSession buildSession(String sessionId) {
+        return buildSession(sessionId, buildAgenda(), buildCanvass(),
+                now().withNano(0), now().withNano(0).plusMinutes(5), OPENED, FALSE);
+    }
+
+    private VotingSession buildSession(String sessionId, VotingAgenda agenda, VotingSessionCanvass canvass, LocalDateTime openingTime, LocalDateTime closingTime, VotingSessionStatus status, Boolean published) {
+        return VotingSessionBuilder.get()
+                .with(VotingSession::setId, sessionId)
+                .with(VotingSession::setAgenda, agenda)
+                .with(VotingSession::setCanvass, canvass)
+                .with(VotingSession::setOpeningTime, openingTime)
+                .with(VotingSession::setClosingTime, closingTime)
+                .with(VotingSession::setStatus, status)
+                .with(VotingSession::setPublished, published)
+                .build();
     }
 
 }

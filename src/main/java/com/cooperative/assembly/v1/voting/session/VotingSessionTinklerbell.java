@@ -1,7 +1,5 @@
 package com.cooperative.assembly.v1.voting.session;
 
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvass;
-import com.cooperative.assembly.v1.voting.session.canvass.VotingSessionCanvassService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -16,11 +14,9 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 public class VotingSessionTinklerbell {
 
     private VotingSessionService votingSessionService;
-    private VotingSessionCanvassService votingSessionCanvassService;
 
-    public VotingSessionTinklerbell(final VotingSessionService votingSessionService, final VotingSessionCanvassService votingSessionCanvassService) {
+    public VotingSessionTinklerbell(final VotingSessionService votingSessionService) {
         this.votingSessionService = votingSessionService;
-        this.votingSessionCanvassService = votingSessionCanvassService;
     }
 
     @Scheduled(cron = "0 * * * * *")
@@ -40,10 +36,9 @@ public class VotingSessionTinklerbell {
     }
 
     private void updateStatusSessionCanvass(final VotingSession session) {
-        VotingSessionCanvass canvass = session.getCanvass();
-        canvass.setStatus(CLOSED);
+        session.setStatus(CLOSED);
         log.debug("Closing session: ", session.getId());
-        votingSessionCanvassService.saveCanvass(canvass);
+        votingSessionService.saveSession(session);
     }
 
 }
